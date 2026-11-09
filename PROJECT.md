@@ -21,7 +21,7 @@ Multi-vendor, wallet, loyalty, mobile app, real payment, OTP, advanced inventory
 
 ## Phases (check off when done)
 - [x] 1 Foundation (Next, fonts, RTL, tokens, shadcn, motion, format utils)
-- [ ] 2 Prisma schema and seed
+- [x] 2 Prisma schema and seed
 - [ ] 3 Design system and layout (header, footer, product card)
 - [ ] 4 Home page
 - [ ] 5 Shop page
