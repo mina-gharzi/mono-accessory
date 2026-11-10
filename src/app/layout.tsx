@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { Footer } from "@/components/layout/footer";
+import { Header } from "@/components/layout/header";
 import { RtlProvider } from "@/components/providers/rtl-provider";
 import "./globals.css";
 
@@ -43,8 +45,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       dir="rtl"
       className={`${pinar.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <RtlProvider>{children}</RtlProvider>
+      <body className="flex min-h-full flex-col">
+        <RtlProvider>
+          <Header />
+          <main className="flex flex-1 flex-col">{children}</main>
+          <Footer />
+        </RtlProvider>
       </body>
     </html>
   );
