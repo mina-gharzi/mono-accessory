@@ -13,6 +13,7 @@ type SeedProduct = {
   code: string;
   name: string;
   slug: string;
+  legacySlug?: string;
   description: string;
   specs: Record<string, string>;
   price: number;
@@ -21,6 +22,7 @@ type SeedProduct = {
   isFeatured?: boolean;
   soldCount: number;
   imageCount: number;
+  image?: string;
   variants: SeedVariant[];
 };
 
@@ -33,53 +35,75 @@ type SeedCollection = {
   productSlugs: string[];
 };
 
-const categories = [
+type SeedCategory = {
+  name: string;
+  slug: string;
+  image: string;
+  sortOrder: number;
+};
+
+const categories: SeedCategory[] = [
   {
-    name: "جواهرات استیل",
-    slug: "steel-jewelry",
-    image: "/images/categories/steel-jewelry.jpg",
+    name: "انگشتر",
+    slug: "rings",
+    image: "/images/categories/category-rings.jpg",
     sortOrder: 1,
   },
   {
-    name: "بدلیجات",
-    slug: "costume-jewelry",
-    image: "/images/categories/costume-jewelry.jpg",
+    name: "گوشواره",
+    slug: "earrings",
+    image: "/images/categories/category-earrings.jpg",
     sortOrder: 2,
   },
   {
-    name: "عینک",
-    slug: "glasses",
-    image: "/images/categories/glasses.jpg",
+    name: "گردنبند",
+    slug: "necklaces",
+    image: "/images/categories/category-necklaces.jpg",
     sortOrder: 3,
+  },
+  {
+    name: "عینک آفتابی",
+    slug: "sunglasses",
+    image: "/images/categories/category-sunglass.jpg",
+    sortOrder: 4,
   },
   {
     name: "اکسسوری",
     slug: "accessories",
-    image: "/images/categories/accessories.jpg",
-    sortOrder: 4,
+    image: "",
+    sortOrder: 5,
   },
 ];
+
+// Previous seed slugs, renamed in place so re-running the seed does not leave
+// duplicate categories behind.
+const categorySlugAliases: Record<string, string> = {
+  rings: "steel-jewelry",
+  earrings: "costume-jewelry",
+  sunglasses: "glasses",
+};
 
 const products: SeedProduct[] = [
   {
     code: "MN-101",
-    name: "گردنبند زنجیری استیل",
+    name: "ست گردنبند استیل",
     slug: "necklace-steel-gold",
     description:
-      "گردنبند زنجیری با جنس استیل ضدزنگ و آبکاری طلایی؛ سبک، مقاوم و مناسب استفادهٔ روزمره.",
+      "ست دو گردنبند استیل با آبکاری طلایی؛ هماهنگ، سبک و مناسب استفادهٔ روزمره.",
     specs: {
       جنس: "استیل ضدزنگ",
       آبکاری: "طلایی",
-      طول: "۴۵ سانتی‌متر",
-      وزن: "۸ گرم",
+      شامل: "دو گردنبند",
+      طول: "۴۰ و ۴۵ سانتی‌متر",
       "بسته‌بندی": "جعبهٔ هدیه",
     },
     price: 1280000,
     compareAtPrice: 1590000,
-    categorySlug: "steel-jewelry",
+    categorySlug: "necklaces",
     isFeatured: true,
     soldCount: 148,
-    imageCount: 3,
+    imageCount: 1,
+    image: "/images/products/product.jpg",
     variants: [
       { color: "طلایی", colorCode: "GD", stock: 12 },
       { color: "نقره‌ای", colorCode: "SL", stock: 7 },
@@ -87,21 +111,24 @@ const products: SeedProduct[] = [
   },
   {
     code: "MN-102",
-    name: "دستبند استیل نگین‌دار",
-    slug: "bracelet-steel-stone",
+    name: "گردنبند لایه‌ای استیل",
+    slug: "necklace-steel-layered",
+    legacySlug: "bracelet-steel-stone",
     description:
-      "دستبند استیل با نگین کریستال و قفل مغناطیسی؛ طراحی مینیمال برای استایل روزانه.",
+      "گردنبند سه‌لایهٔ استیل با آبکاری نقره‌ای؛ طراحی سبک و روزمره برای استایل مینیمال.",
     specs: {
       جنس: "استیل ضدزنگ",
-      سنگ: "کریستال",
-      طول: "۱۷ سانتی‌متر",
-      وزن: "۱۴ گرم",
+      آبکاری: "نقره‌ای",
+      "تعداد لایه": "۳",
+      طول: "۴۵ سانتی‌متر",
+      وزن: "۱۰ گرم",
     },
     price: 980000,
-    categorySlug: "steel-jewelry",
+    categorySlug: "necklaces",
     isFeatured: true,
     soldCount: 96,
-    imageCount: 3,
+    imageCount: 1,
+    image: "/images/products/product1.jpg",
     variants: [
       { color: "طلایی", colorCode: "GD", stock: 9 },
       { color: "نقره‌ای", colorCode: "SL", stock: 4 },
@@ -120,7 +147,7 @@ const products: SeedProduct[] = [
       وزن: "۵ گرم",
     },
     price: 620000,
-    categorySlug: "steel-jewelry",
+    categorySlug: "rings",
     soldCount: 210,
     imageCount: 2,
     variants: [
@@ -141,7 +168,7 @@ const products: SeedProduct[] = [
     },
     price: 540000,
     compareAtPrice: 690000,
-    categorySlug: "steel-jewelry",
+    categorySlug: "earrings",
     soldCount: 320,
     imageCount: 3,
     variants: [
@@ -161,7 +188,7 @@ const products: SeedProduct[] = [
       وزن: "۴ گرم",
     },
     price: 390000,
-    categorySlug: "costume-jewelry",
+    categorySlug: "earrings",
     isFeatured: true,
     soldCount: 275,
     imageCount: 2,
@@ -182,7 +209,7 @@ const products: SeedProduct[] = [
       طول: "۴۰ سانتی‌متر",
     },
     price: 460000,
-    categorySlug: "costume-jewelry",
+    categorySlug: "necklaces",
     soldCount: 132,
     imageCount: 3,
     variants: [{ color: "طلایی", colorCode: "GD", stock: 21 }],
@@ -199,7 +226,7 @@ const products: SeedProduct[] = [
       وزن: "۹ گرم",
     },
     price: 350000,
-    categorySlug: "costume-jewelry",
+    categorySlug: "accessories",
     soldCount: 88,
     imageCount: 2,
     variants: [{ color: "رزگلد", colorCode: "RG", stock: 6 }],
@@ -217,7 +244,7 @@ const products: SeedProduct[] = [
     },
     price: 720000,
     compareAtPrice: 890000,
-    categorySlug: "costume-jewelry",
+    categorySlug: "necklaces",
     isFeatured: true,
     soldCount: 64,
     imageCount: 3,
@@ -236,7 +263,7 @@ const products: SeedProduct[] = [
       شامل: "کیف و دستمال",
     },
     price: 1450000,
-    categorySlug: "glasses",
+    categorySlug: "sunglasses",
     isFeatured: true,
     soldCount: 73,
     imageCount: 3,
@@ -258,7 +285,7 @@ const products: SeedProduct[] = [
       شامل: "کیف و دستمال",
     },
     price: 1250000,
-    categorySlug: "glasses",
+    categorySlug: "sunglasses",
     soldCount: 51,
     imageCount: 2,
     variants: [
@@ -278,7 +305,7 @@ const products: SeedProduct[] = [
       عرض: "۱۳.۵ سانتی‌متر",
     },
     price: 1680000,
-    categorySlug: "glasses",
+    categorySlug: "sunglasses",
     soldCount: 39,
     imageCount: 2,
     variants: [
@@ -300,7 +327,7 @@ const products: SeedProduct[] = [
     },
     price: 1390000,
     compareAtPrice: 1690000,
-    categorySlug: "glasses",
+    categorySlug: "sunglasses",
     soldCount: 118,
     imageCount: 3,
     variants: [
@@ -400,7 +427,7 @@ const collections: SeedCollection[] = [
     slug: "bestsellers",
     description:
       "محبوب‌ترین قطعات مونو بر اساس انتخاب مشتریان؛ از گردنبند استیل تا اکسسوری روزمره.",
-    image: "/images/collections/bestsellers.jpg",
+    image: "/images/collections/collection-necklaces.jpg",
     isActive: true,
     productSlugs: [
       "necklace-steel-gold",
@@ -415,14 +442,14 @@ const collections: SeedCollection[] = [
     slug: "new-arrivals",
     description:
       "جدیدترین قطعاتی که به مجموعهٔ مونو اضافه شده‌اند؛ طراحی‌های تازه برای فصل جدید.",
-    image: "/images/collections/new-arrivals.jpg",
+    image: "/images/collections/collection-sunglass.jpg",
     isActive: true,
     productSlugs: [
       "sunglasses-cateye",
       "bag-shoulder-mini",
       "watch-metal",
       "set-necklace-earrings",
-      "bracelet-steel-stone",
+      "necklace-steel-layered",
     ],
   },
   {
@@ -430,7 +457,7 @@ const collections: SeedCollection[] = [
     slug: "gifts",
     description:
       "انتخاب‌هایی آماده برای هدیه‌دادن؛ از ست‌های هماهنگ تا ساعت و گردنبند استیل.",
-    image: "/images/collections/gifts.jpg",
+    image: "/images/collections/collection-other-accessory.jpg",
     isActive: true,
     productSlugs: [
       "set-necklace-earrings",
@@ -446,6 +473,42 @@ const settings = [
   { key: "shippingCost", value: "60000" },
   { key: "freeShippingThreshold", value: "1500000" },
 ];
+
+async function upsertCategory(category: SeedCategory) {
+  const existing = await prisma.category.findUnique({
+    where: { slug: category.slug },
+  });
+
+  if (existing) {
+    return prisma.category.update({
+      where: { id: existing.id },
+      data: {
+        name: category.name,
+        image: category.image,
+        sortOrder: category.sortOrder,
+      },
+    });
+  }
+
+  const alias = categorySlugAliases[category.slug];
+  const legacy = alias
+    ? await prisma.category.findUnique({ where: { slug: alias } })
+    : null;
+
+  if (legacy) {
+    return prisma.category.update({
+      where: { id: legacy.id },
+      data: {
+        name: category.name,
+        slug: category.slug,
+        image: category.image,
+        sortOrder: category.sortOrder,
+      },
+    });
+  }
+
+  return prisma.category.create({ data: category });
+}
 
 async function main() {
   const adminMobile = process.env.ADMIN_MOBILE;
@@ -483,15 +546,7 @@ async function main() {
   const categoryIds = new Map<string, string>();
 
   for (const category of categories) {
-    const row = await prisma.category.upsert({
-      where: { slug: category.slug },
-      update: {
-        name: category.name,
-        image: category.image,
-        sortOrder: category.sortOrder,
-      },
-      create: category,
-    });
+    const row = await upsertCategory(category);
 
     categoryIds.set(category.slug, row.id);
   }
@@ -505,32 +560,36 @@ async function main() {
       throw new Error(`Unknown category: ${product.categorySlug}`);
     }
 
-    const row = await prisma.product.upsert({
+    const data = {
+      name: product.name,
+      slug: product.slug,
+      description: product.description,
+      specs: product.specs,
+      price: product.price,
+      compareAtPrice: product.compareAtPrice ?? null,
+      categoryId,
+      isFeatured: product.isFeatured ?? false,
+      isActive: true,
+      soldCount: product.soldCount,
+    };
+
+    const existing = await prisma.product.findUnique({
       where: { slug: product.slug },
-      update: {
-        name: product.name,
-        description: product.description,
-        specs: product.specs,
-        price: product.price,
-        compareAtPrice: product.compareAtPrice ?? null,
-        categoryId,
-        isFeatured: product.isFeatured ?? false,
-        isActive: true,
-        soldCount: product.soldCount,
-      },
-      create: {
-        name: product.name,
-        slug: product.slug,
-        description: product.description,
-        specs: product.specs,
-        price: product.price,
-        compareAtPrice: product.compareAtPrice ?? null,
-        categoryId,
-        isFeatured: product.isFeatured ?? false,
-        isActive: true,
-        soldCount: product.soldCount,
-      },
     });
+    const legacy =
+      !existing && product.legacySlug
+        ? await prisma.product.findUnique({
+            where: { slug: product.legacySlug },
+          })
+        : null;
+    const current = existing ?? legacy;
+
+    const row = current
+      ? await prisma.product.update({
+          where: { id: current.id },
+          data,
+        })
+      : await prisma.product.create({ data });
 
     productIds.set(product.slug, row.id);
 
@@ -538,7 +597,10 @@ async function main() {
     await prisma.productImage.createMany({
       data: Array.from({ length: product.imageCount }, (_, index) => ({
         productId: row.id,
-        url: `/images/products/${product.slug}-${index + 1}.jpg`,
+        url:
+          product.image && index === 0
+            ? product.image
+            : `/images/products/${product.slug}-${index + 1}.jpg`,
         alt: `${product.name} - تصویر ${index + 1}`,
         sortOrder: index,
       })),
