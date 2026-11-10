@@ -23,7 +23,7 @@ Multi-vendor, wallet, loyalty, mobile app, real payment, OTP, advanced inventory
 - [x] 1 Foundation (Next, fonts, RTL, tokens, shadcn, motion, format utils)
 - [x] 2 Prisma schema and seed
 - [x] 3 Design system and layout (header, footer, product card)
-- [ ] 4 Home page
+- [x] 4 Home page
 - [ ] 5 Shop page
 - [ ] 6 Product detail
 - [ ] 7 Auth
