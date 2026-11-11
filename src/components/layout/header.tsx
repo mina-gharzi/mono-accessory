@@ -2,14 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import {
-  Heart,
-  Menu,
-  Search,
-  ShoppingBag,
-  User,
-} from "lucide-react";
+import { Heart, Menu, ShoppingBag, User } from "lucide-react";
 import { Container } from "@/components/container";
+import { SearchDialog } from "@/components/layout/search-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -154,11 +149,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-0.5 sm:gap-1">
-          <Button asChild variant="ghost" size="icon">
-            <Link href="/shop" aria-label="جستجو">
-              <Search className="size-5" aria-hidden="true" />
-            </Link>
-          </Button>
+          <SearchDialog />
 
           <Button asChild variant="ghost" size="icon" className="relative">
             <Link
