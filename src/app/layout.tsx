@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { Suspense } from "react";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
+import { HeaderClient } from "@/components/layout/header-client";
 import { RtlProvider } from "@/components/providers/rtl-provider";
 import "./globals.css";
 
@@ -50,7 +52,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col">
         <RtlProvider>
-          <Header />
+          <Suspense fallback={<HeaderClient user={undefined} />}>
+            <Header />
+          </Suspense>
           <main className="flex flex-1 flex-col">{children}</main>
           <Footer />
         </RtlProvider>
