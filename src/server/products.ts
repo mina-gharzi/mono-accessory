@@ -11,6 +11,7 @@ import type { Prisma } from "../generated/prisma/client";
 import { prisma } from "./db";
 
 const productCardSelect = {
+  id: true,
   name: true,
   slug: true,
   price: true,
@@ -410,4 +411,258 @@ export async function getActiveCollectionsList(): Promise<HomeCollection[]> {
       image: true,
     },
   });
+}
+
+const productSlugSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120)
+  .regex(/^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u);
+
+const variantSkuSchema = z.string().trim().min(1).max(64);
+
+const productIdSchema = z.string().trim().min(1).max(64);
+
+const productSpecsSchema = z.record(z.string(), z.unknown());
+
+const productDetailSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  specs: true,
+  price: true,
+  compareAtPrice: true,
+  category: {
+    select: { name: true, slug: true },
+  },
+  images: {
+    orderBy: { sortOrder: "asc" },
+    select: { url: true, alt: true },
+  },
+  variants: {
+    orderBy: [{ color: "asc" }, { model: "asc" }, { sku: "asc" }],
+    select: {
+      id: true,
+      color: true,
+      model: true,
+      sku: true,
+      stock: true,
+    },
+  },
+  reviews: {
+    where: { status: "APPROVED" },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      rating: true,
+      comment: true,
+      createdAt: true,
+      user: { select: { name: true } },
+    },
+  },
+} satisfies Prisma.ProductSelect;
+
+type ProductDetailRow = Prisma.ProductGetPayload<{
+  select: typeof productDetailSelect;
+}>;
+
+export type ProductSpec = {
+  key: string;
+  value: string;
+};
+
+export type ProductDetailVariant = {
+  id: string;
+  color: string;
+  model: string | null;
+  sku: string;
+  stock: number;
+};
+
+export type ProductReview = {
+  id: string;
+  rating: number;
+  comment: string | null;
+  authorName: string;
+  createdAt: Date;
+};
+
+export type ProductDetail = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  specs: ProductSpec[];
+  price: number;
+  compareAtPrice: number | null;
+  discountPercent: number | null;
+  images: { url: string; alt: string }[];
+  variants: ProductDetailVariant[];
+  category: { name: string; slug: string };
+  reviews: ProductReview[];
+  averageRating: number | null;
+  reviewCount: number;
+  inStock: boolean;
+};
+
+function parseProductSpecs(value: Prisma.JsonValue): ProductSpec[] {
+  const parsed = productSpecsSchema.safeParse(value);
+
+  if (!parsed.success) return [];
+
+  return Object.entries(parsed.data)
+    .map(([key, rawValue]) => ({
+      key: key.trim(),
+      value:
+        typeof rawValue === "string" ||
+        typeof rawValue === "number" ||
+        typeof rawValue === "boolean"
+          ? String(rawValue).trim()
+          : "",
+    }))
+    .filter((spec) => spec.key.length > 0 && spec.value.length > 0);
+}
+
+function toProductDetail(row: ProductDetailRow): ProductDetail {
+  const variants = row.variants.map((variant) => ({
+    id: variant.id,
+    color: variant.color,
+    model: variant.model,
+    sku: variant.sku,
+    stock: variant.stock,
+  }));
+
+  const reviews = row.reviews.map((review) => {
+    const firstName = review.user.name.trim().split(/\s+/)[0];
+
+    return {
+      id: review.id,
+      rating: review.rating,
+      comment: review.comment?.trim() || null,
+      authorName: firstName || "کاربر مونو",
+      createdAt: review.createdAt,
+    };
+  });
+
+  const reviewCount = reviews.length;
+  const averageRating =
+    reviewCount > 0
+      ? Math.round(
+          (reviews.reduce((total, review) => total + review.rating, 0) /
+            reviewCount) *
+            10
+        ) / 10
+      : null;
+
+  const discountPercent =
+    row.compareAtPrice && row.compareAtPrice > row.price
+      ? Math.round((1 - row.price / row.compareAtPrice) * 100)
+      : null;
+
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    description: row.description,
+    specs: parseProductSpecs(row.specs),
+    price: row.price,
+    compareAtPrice: row.compareAtPrice,
+    discountPercent,
+    images: row.images.map((image) => ({ url: image.url, alt: image.alt })),
+    variants,
+    category: row.category,
+    reviews,
+    averageRating,
+    reviewCount,
+    inStock: variants.some((variant) => variant.stock > 0),
+  };
+}
+
+export async function getProductBySlug(
+  slug: string
+): Promise<ProductDetail | null> {
+  const parsed = productSlugSchema.safeParse(slug);
+
+  if (!parsed.success) return null;
+
+  const product = await prisma.product.findFirst({
+    where: { slug: parsed.data, isActive: true },
+    select: productDetailSelect,
+  });
+
+  return product ? toProductDetail(product) : null;
+}
+
+export function pickVariant(
+  variants: ProductDetailVariant[],
+  requestedSku: string | string[] | undefined
+): ProductDetailVariant | null {
+  if (variants.length === 0) return null;
+
+  const value = Array.isArray(requestedSku) ? undefined : requestedSku;
+  const parsed = variantSkuSchema.safeParse(value);
+  const requested = parsed.success
+    ? variants.find((variant) => variant.sku === parsed.data)
+    : undefined;
+
+  return (
+    requested ??
+    variants.find((variant) => variant.stock > 0) ??
+    variants[0] ??
+    null
+  );
+}
+
+export async function getSimilarProducts(
+  productId: string,
+  limit: number
+): Promise<ProductCardProduct[]> {
+  const parsed = productIdSchema.safeParse(productId);
+
+  if (!parsed.success) return [];
+
+  const take = clampLimit(limit);
+  const current = await prisma.product.findUnique({
+    where: { id: parsed.data },
+    select: {
+      categoryId: true,
+      collections: { select: { id: true } },
+    },
+  });
+
+  if (!current) return [];
+
+  const products = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      categoryId: current.categoryId,
+      id: { not: parsed.data },
+    },
+    orderBy: [{ soldCount: "desc" }, { createdAt: "desc" }],
+    take,
+    select: productCardSelect,
+  });
+
+  if (products.length >= take || current.collections.length === 0) {
+    return products.map(toProductCard);
+  }
+
+  const fallback = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      id: {
+        notIn: [parsed.data, ...products.map((product) => product.id)],
+      },
+      collections: {
+        some: { id: { in: current.collections.map((collection) => collection.id) } },
+      },
+    },
+    orderBy: [{ soldCount: "desc" }, { createdAt: "desc" }],
+    take: take - products.length,
+    select: productCardSelect,
+  });
+
+  return [...products, ...fallback].map(toProductCard);
 }

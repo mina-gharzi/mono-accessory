@@ -88,8 +88,4 @@ export function hasActiveFilters(query: ShopQuery): boolean {
   );
 }
 
-const numberFormatter = new Intl.NumberFormat("fa-IR");
-
-export function formatNumber(value: number): string {
-  return numberFormatter.format(value);
-}
+export { formatNumber } from "@/lib/format";

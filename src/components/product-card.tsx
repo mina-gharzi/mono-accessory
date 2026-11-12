@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Gem, Heart } from "lucide-react";
+import { Heart } from "lucide-react";
+import { ProductImagePlaceholder } from "@/components/product-image-placeholder";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -45,12 +46,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
       />
 
       <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-secondary/60">
-        <div
-          className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_30%_20%,rgb(246_233_225),rgb(255_252_247))] text-primary/25"
-          aria-hidden="true"
-        >
-          <Gem className="size-10" />
-        </div>
+        <ProductImagePlaceholder />
 
         {product.image && !imageFailed ? (
           <Image
