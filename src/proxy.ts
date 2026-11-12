@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Must match SESSION_COOKIE in src/server/auth/session.ts.
 const SESSION_COOKIE = "mono_session";
-const PROTECTED_PREFIXES = ["/account", "/admin"];
+const PROTECTED_PREFIXES = ["/account", "/admin", "/cart"];
 
 // Optimistic check only: a cookie can be present but invalid or expired.
 // The real authentication and role checks live in the protected layouts.
@@ -26,5 +26,11 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/account", "/account/:path*", "/admin", "/admin/:path*"],
+  matcher: [
+    "/account",
+    "/account/:path*",
+    "/admin",
+    "/admin/:path*",
+    "/cart",
+  ],
 };

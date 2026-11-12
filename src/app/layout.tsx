@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { HeaderClient } from "@/components/layout/header-client";
+import { CartSheetProvider } from "@/components/cart/cart-sheet";
 import { RtlProvider } from "@/components/providers/rtl-provider";
 import "./globals.css";
 
@@ -52,11 +53,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col">
         <RtlProvider>
-          <Suspense fallback={<HeaderClient user={undefined} />}>
-            <Header />
-          </Suspense>
-          <main className="flex flex-1 flex-col">{children}</main>
-          <Footer />
+          <CartSheetProvider>
+            <Suspense
+              fallback={<HeaderClient user={undefined} cartCount={0} />}
+            >
+              <Header />
+            </Suspense>
+            <main className="flex flex-1 flex-col">{children}</main>
+            <Footer />
+          </CartSheetProvider>
         </RtlProvider>
       </body>
     </html>

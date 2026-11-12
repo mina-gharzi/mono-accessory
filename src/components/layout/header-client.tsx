@@ -15,6 +15,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
+import { useCartSheet } from "@/components/cart/cart-sheet";
 import { Container } from "@/components/container";
 import { SearchDialog } from "@/components/layout/search-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -45,7 +46,6 @@ const navLinks = [
 
 const countFormatter = new Intl.NumberFormat("fa-IR");
 const wishlistCount = 0;
-const cartCount = 0;
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -62,9 +62,12 @@ export type HeaderUser = {
 
 export function HeaderClient({
   user,
+  cartCount,
 }: {
   user: HeaderUser | null | undefined;
+  cartCount: number;
 }) {
+  const { openCart } = useCartSheet();
   const [scrolled, setScrolled] = useState(false);
   const [loggingOut, startLogout] = useTransition();
 
@@ -256,9 +259,13 @@ export function HeaderClient({
             </Link>
           </Button>
 
-          <Button asChild variant="ghost" size="icon" className="relative">
-            <Link
-              href="/cart"
+          {user ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="relative"
+              onClick={openCart}
               aria-label={`سبد خرید، ${countFormatter.format(cartCount)} مورد`}
             >
               <ShoppingBag className="size-5" aria-hidden="true" />
@@ -268,8 +275,27 @@ export function HeaderClient({
               >
                 {countFormatter.format(cartCount)}
               </span>
-            </Link>
-          </Button>
+            </Button>
+          ) : (
+            <Button asChild variant="ghost" size="icon" className="relative">
+              <Link
+                href={user === null ? "/login?next=%2Fcart" : "/cart"}
+                aria-label={
+                  user === null
+                    ? "سبد خرید، برای مشاهده وارد شوید"
+                    : `سبد خرید، ${countFormatter.format(cartCount)} مورد`
+                }
+              >
+                <ShoppingBag className="size-5" aria-hidden="true" />
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-0.5 -end-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
+                >
+                  {countFormatter.format(cartCount)}
+                </span>
+              </Link>
+            </Button>
+          )}
 
           {user === undefined ? (
             <span className="inline-block size-10" aria-hidden="true" />

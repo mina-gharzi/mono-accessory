@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { CheckCircle2, Minus, Plus, XCircle } from "lucide-react";
 import { PurchaseActions } from "@/components/product/purchase-actions";
+import { CART_MAX_QUANTITY } from "@/lib/cart";
 import { formatNumber, formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +59,7 @@ export function VariantPurchasePanel({
     variants.find((variant) => variant.sku === selectedSku) ?? null;
   const stock = selectedVariant?.stock ?? 0;
   const outOfStock = !selectedVariant || stock <= 0;
-  const maxQuantity = Math.max(1, stock);
+  const maxQuantity = Math.max(1, Math.min(stock, CART_MAX_QUANTITY));
 
   useEffect(() => {
     if (!selectedSku) return;
@@ -116,7 +117,9 @@ export function VariantPurchasePanel({
   function selectVariant(variant: VariantOption | null) {
     if (!variant) return;
     setSelectedSku(variant.sku);
-    setQuantity((current) => Math.min(current, Math.max(1, variant.stock)));
+    setQuantity((current) =>
+      Math.min(current, Math.max(1, Math.min(variant.stock, CART_MAX_QUANTITY)))
+    );
   }
 
   return (
@@ -304,6 +307,7 @@ export function VariantPurchasePanel({
 
           <PurchaseActions
             productName={productName}
+            variantId={selectedVariant?.id ?? null}
             quantity={quantity}
             disabled={outOfStock}
           />
@@ -321,6 +325,7 @@ export function VariantPurchasePanel({
 
           <PurchaseActions
             productName={productName}
+            variantId={selectedVariant?.id ?? null}
             quantity={quantity}
             disabled={outOfStock}
             showWishlist={false}
