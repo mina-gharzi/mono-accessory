@@ -1,4 +1,6 @@
 import "dotenv/config";
+import { existsSync, readdirSync } from "node:fs";
+import path from "node:path";
 import { hash } from "bcryptjs";
 import { prisma } from "../src/server/db";
 
@@ -21,7 +23,6 @@ type SeedProduct = {
   categorySlug: string;
   isFeatured?: boolean;
   soldCount: number;
-  imageCount: number;
   image?: string;
   variants: SeedVariant[];
 };
@@ -102,7 +103,6 @@ const products: SeedProduct[] = [
     categorySlug: "necklaces",
     isFeatured: true,
     soldCount: 148,
-    imageCount: 1,
     image: "/images/products/product.jpg",
     variants: [
       { color: "طلایی", colorCode: "GD", stock: 12 },
@@ -127,7 +127,6 @@ const products: SeedProduct[] = [
     categorySlug: "necklaces",
     isFeatured: true,
     soldCount: 96,
-    imageCount: 1,
     image: "/images/products/product1.jpg",
     variants: [
       { color: "طلایی", colorCode: "GD", stock: 9 },
@@ -149,7 +148,6 @@ const products: SeedProduct[] = [
     price: 620000,
     categorySlug: "rings",
     soldCount: 210,
-    imageCount: 2,
     variants: [
       { color: "طلایی", colorCode: "GD", stock: 18 },
       { color: "نقره‌ای", colorCode: "SL", stock: 11 },
@@ -170,7 +168,6 @@ const products: SeedProduct[] = [
     compareAtPrice: 690000,
     categorySlug: "earrings",
     soldCount: 320,
-    imageCount: 3,
     variants: [
       { color: "طلایی", colorCode: "GD", stock: 25 },
       { color: "نقره‌ای", colorCode: "SL", stock: 14 },
@@ -191,7 +188,6 @@ const products: SeedProduct[] = [
     categorySlug: "earrings",
     isFeatured: true,
     soldCount: 275,
-    imageCount: 2,
     variants: [
       { color: "طلایی", colorCode: "GD", stock: 30 },
       { color: "نقره‌ای", colorCode: "SL", stock: 16 },
@@ -211,7 +207,6 @@ const products: SeedProduct[] = [
     price: 460000,
     categorySlug: "necklaces",
     soldCount: 132,
-    imageCount: 3,
     variants: [{ color: "طلایی", colorCode: "GD", stock: 21 }],
   },
   {
@@ -228,7 +223,6 @@ const products: SeedProduct[] = [
     price: 350000,
     categorySlug: "accessories",
     soldCount: 88,
-    imageCount: 2,
     variants: [{ color: "رزگلد", colorCode: "RG", stock: 6 }],
   },
   {
@@ -247,7 +241,6 @@ const products: SeedProduct[] = [
     categorySlug: "necklaces",
     isFeatured: true,
     soldCount: 64,
-    imageCount: 3,
     variants: [{ color: "طلایی", colorCode: "GD", stock: 8 }],
   },
   {
@@ -266,7 +259,6 @@ const products: SeedProduct[] = [
     categorySlug: "sunglasses",
     isFeatured: true,
     soldCount: 73,
-    imageCount: 3,
     variants: [
       { color: "مشکی", colorCode: "BK", stock: 6 },
       { color: "قهوه‌ای", colorCode: "BR", stock: 3 },
@@ -287,7 +279,6 @@ const products: SeedProduct[] = [
     price: 1250000,
     categorySlug: "sunglasses",
     soldCount: 51,
-    imageCount: 2,
     variants: [
       { color: "مشکی", colorCode: "BK", stock: 5 },
       { color: "طلایی", colorCode: "GD", stock: 0 },
@@ -307,7 +298,6 @@ const products: SeedProduct[] = [
     price: 1680000,
     categorySlug: "sunglasses",
     soldCount: 39,
-    imageCount: 2,
     variants: [
       { color: "نقره‌ای", colorCode: "SL", stock: 4 },
       { color: "طلایی", colorCode: "GD", stock: 2 },
@@ -329,7 +319,6 @@ const products: SeedProduct[] = [
     compareAtPrice: 1690000,
     categorySlug: "sunglasses",
     soldCount: 118,
-    imageCount: 3,
     variants: [
       { color: "مشکی", colorCode: "BK", stock: 9 },
       { color: "لاک‌پشتی", colorCode: "TR", stock: 5 },
@@ -349,7 +338,6 @@ const products: SeedProduct[] = [
     price: 1190000,
     categorySlug: "accessories",
     soldCount: 87,
-    imageCount: 3,
     variants: [
       { color: "مشکی", colorCode: "BK", stock: 7 },
       { color: "کرم", colorCode: "CR", stock: 3 },
@@ -369,7 +357,6 @@ const products: SeedProduct[] = [
     price: 420000,
     categorySlug: "accessories",
     soldCount: 194,
-    imageCount: 2,
     variants: [
       { color: "کرم", colorCode: "CR", stock: 22 },
       { color: "زرشکی", colorCode: "BG", stock: 14 },
@@ -393,7 +380,6 @@ const products: SeedProduct[] = [
     categorySlug: "accessories",
     isFeatured: true,
     soldCount: 42,
-    imageCount: 3,
     variants: [
       { color: "نقره‌ای", colorCode: "SL", stock: 4 },
       { color: "طلایی", colorCode: "GD", stock: 2 },
@@ -413,7 +399,6 @@ const products: SeedProduct[] = [
     price: 180000,
     categorySlug: "accessories",
     soldCount: 356,
-    imageCount: 2,
     variants: [
       { color: "طلایی", colorCode: "GD", stock: 40 },
       { color: "نقره‌ای", colorCode: "SL", stock: 28 },
@@ -474,6 +459,46 @@ const settings = [
   { key: "freeShippingThreshold", value: "1500000" },
 ];
 
+const productImagesDirectory = path.join(
+  process.cwd(),
+  "public",
+  "images",
+  "products"
+);
+
+type SeedProductImage = {
+  url: string;
+  alt: string;
+  sortOrder: number;
+};
+
+function findProductImages(
+  product: SeedProduct,
+  files: string[]
+): SeedProductImage[] {
+  const prefix = `${product.slug}-`;
+  const matchedFiles = files
+    .filter((file) => file.startsWith(prefix) && file.endsWith(".jpg"))
+    .map((file) => ({
+      file,
+      index: Number(file.slice(prefix.length, -".jpg".length)),
+    }))
+    .filter(({ index }) => Number.isInteger(index) && index > 0)
+    .sort((a, b) => a.index - b.index);
+
+  const urls = product.image
+    ? [product.image]
+    : matchedFiles.map(({ file }) => `/images/products/${file}`);
+
+  return urls
+    .filter((url) => existsSync(path.join(process.cwd(), "public", url)))
+    .map((url, index) => ({
+      url,
+      alt: product.name,
+      sortOrder: index,
+    }));
+}
+
 async function upsertCategory(category: SeedCategory) {
   const existing = await prisma.category.findUnique({
     where: { slug: category.slug },
@@ -526,12 +551,14 @@ async function main() {
       passwordHash,
       name: "مدیر مونو",
       role: "ADMIN",
+      mobileVerifiedAt: new Date(),
     },
     create: {
       mobile: adminMobile,
       passwordHash,
       name: "مدیر مونو",
       role: "ADMIN",
+      mobileVerifiedAt: new Date(),
     },
   });
 
@@ -552,6 +579,7 @@ async function main() {
   }
 
   const productIds = new Map<string, string>();
+  const productImageFiles = readdirSync(productImagesDirectory);
 
   for (const product of products) {
     const categoryId = categoryIds.get(product.categorySlug);
@@ -593,18 +621,15 @@ async function main() {
 
     productIds.set(product.slug, row.id);
 
+    const images = findProductImages(product, productImageFiles);
+
     await prisma.productImage.deleteMany({ where: { productId: row.id } });
-    await prisma.productImage.createMany({
-      data: Array.from({ length: product.imageCount }, (_, index) => ({
-        productId: row.id,
-        url:
-          product.image && index === 0
-            ? product.image
-            : `/images/products/${product.slug}-${index + 1}.jpg`,
-        alt: `${product.name} - تصویر ${index + 1}`,
-        sortOrder: index,
-      })),
-    });
+
+    if (images.length > 0) {
+      await prisma.productImage.createMany({
+        data: images.map((image) => ({ productId: row.id, ...image })),
+      });
+    }
 
     for (const variant of product.variants) {
       const sku = `${product.code}-${variant.colorCode}`;
