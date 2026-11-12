@@ -2,7 +2,13 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Must match SESSION_COOKIE in src/server/auth/session.ts.
 const SESSION_COOKIE = "mono_session";
-const PROTECTED_PREFIXES = ["/account", "/admin", "/cart"];
+const PROTECTED_PREFIXES = [
+  "/account",
+  "/admin",
+  "/cart",
+  "/checkout",
+  "/payment",
+];
 
 // Optimistic check only: a cookie can be present but invalid or expired.
 // The real authentication and role checks live in the protected layouts.
@@ -32,5 +38,9 @@ export const config = {
     "/admin",
     "/admin/:path*",
     "/cart",
+    "/checkout",
+    "/checkout/:path*",
+    "/payment",
+    "/payment/:path*",
   ],
 };

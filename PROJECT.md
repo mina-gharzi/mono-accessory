@@ -28,7 +28,7 @@ Multi-vendor, wallet, loyalty, mobile app, real payment, OTP, advanced inventory
 - [x] 6 Product detail
 - [x] 7 Auth
 - [x] 8 Cart
-- [ ] 9 Checkout, mock payment, orders
+- [x] 9 Checkout, mock payment, orders
 - [ ] 10 User account (orders, wishlist)
 - [ ] 11 Admin products, categories, stock
 - [ ] 12 Admin orders and dashboard

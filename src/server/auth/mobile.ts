@@ -3,7 +3,7 @@ import { z } from "zod";
 const PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
 const ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
 
-function toEnglishDigits(value: string): string {
+export function toEnglishDigits(value: string): string {
   return value.replace(/[۰-۹٠-٩]/g, (digit) => {
     const persianIndex = PERSIAN_DIGITS.indexOf(digit);
 

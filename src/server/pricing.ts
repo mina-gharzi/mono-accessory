@@ -56,11 +56,9 @@ function parseSettingAmount(
   return parsed.success ? parsed.data : fallback;
 }
 
-export async function getShippingSettings(): Promise<ShippingSettings> {
-  const rows = await prisma.setting.findMany({
-    where: { key: { in: ["shippingCost", "freeShippingThreshold"] } },
-    select: { key: true, value: true },
-  });
+export function resolveShippingSettings(
+  rows: { key: string; value: string }[]
+): ShippingSettings {
   const values = new Map(rows.map((row) => [row.key, row.value]));
 
   return {
@@ -73,4 +71,13 @@ export async function getShippingSettings(): Promise<ShippingSettings> {
       DEFAULT_FREE_SHIPPING_THRESHOLD
     ),
   };
+}
+
+export async function getShippingSettings(): Promise<ShippingSettings> {
+  const rows = await prisma.setting.findMany({
+    where: { key: { in: ["shippingCost", "freeShippingThreshold"] } },
+    select: { key: true, value: true },
+  });
+
+  return resolveShippingSettings(rows);
 }
