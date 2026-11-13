@@ -19,7 +19,7 @@ export function WishlistButton({
   className,
   iconClassName,
 }: WishlistButtonProps) {
-  const { ids, ready, setWishlisted } = useWishlist();
+  const { ids, setWishlisted } = useWishlist();
   const baseWishlisted = ids.has(productId);
   const [optimisticWishlisted, setOptimisticWishlisted] =
     useOptimistic(baseWishlisted);
@@ -27,7 +27,7 @@ export function WishlistButton({
   const [error, setError] = useState<string | null>(null);
 
   function handleToggle() {
-    if (!ready || isPending) return;
+    if (isPending) return;
 
     const nextWishlisted = !baseWishlisted;
     setError(null);
@@ -47,11 +47,9 @@ export function WishlistButton({
     });
   }
 
-  const label = !ready
-    ? "در حال بارگذاری علاقه‌مندی‌ها"
-    : optimisticWishlisted
-      ? `حذف ${productName} از علاقه‌مندی‌ها`
-      : `افزودن ${productName} به علاقه‌مندی‌ها`;
+  const label = optimisticWishlisted
+    ? `حذف ${productName} از علاقه‌مندی‌ها`
+    : `افزودن ${productName} به علاقه‌مندی‌ها`;
 
   return (
     <>
@@ -59,8 +57,8 @@ export function WishlistButton({
         type="button"
         aria-label={label}
         aria-pressed={optimisticWishlisted}
-        aria-busy={!ready || isPending}
-        disabled={!ready || isPending}
+        aria-busy={isPending}
+        disabled={isPending}
         onClick={handleToggle}
         className={cn(
           "inline-flex items-center justify-center transition-colors disabled:cursor-wait disabled:opacity-70 motion-reduce:transition-none",

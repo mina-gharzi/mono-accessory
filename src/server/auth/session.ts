@@ -105,6 +105,9 @@ export async function requireUser(): Promise<SessionUser> {
   return user;
 }
 
+// Authorization rule: every admin server action and every admin data function
+// must call requireAdmin() itself. The admin layout and the optimistic proxy
+// check are not security boundaries.
 export async function requireAdmin(): Promise<SessionUser> {
   const user = await requireUser();
 

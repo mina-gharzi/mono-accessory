@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Container } from "@/components/container";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { EmptyState } from "@/components/empty-state";
 
 export const metadata: Metadata = {
@@ -12,12 +12,15 @@ export const metadata: Metadata = {
 
 export default function AdminPage() {
   return (
-    <Container className="flex flex-1 items-center justify-center py-16">
-      <EmptyState
-        className="w-full max-w-xl"
-        title="پنل مدیریت"
-        description="این بخش در فاز بعدی تکمیل می‌شود."
+    <div className="flex flex-col gap-6">
+      <AdminPageHeader
+        title="نمای کلی"
+        description="پوستهٔ پنل مدیریت. داشبورد فروش و آمار در فاز ۱۲ اضافه می‌شود."
       />
-    </Container>
+      <EmptyState
+        title="داشبورد هنوز آماده نیست"
+        description="این صفحه فعلاً فقط پوستهٔ پنل مدیریت را نشان می‌دهد. آمار فروش، سفارش‌ها و مشتریان در فاز ۱۲ اضافه می‌شود."
+      />
+    </div>
   );
 }

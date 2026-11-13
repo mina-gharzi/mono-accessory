@@ -1,78 +1,82 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
-type WishlistContextValue = {
+type WishlistSnapshot = {
   ids: ReadonlySet<string>;
-  ready: boolean;
-  seed: (ids: string[]) => void;
-  setWishlisted: (productId: string, wishlisted: boolean) => void;
 };
 
-const WishlistContext = createContext<WishlistContextValue | null>(null);
+const EMPTY_IDS: ReadonlySet<string> = new Set<string>();
 
-export function useWishlist(): WishlistContextValue {
-  const context = useContext(WishlistContext);
+// The server shell is static, so the server snapshot has to be the same for
+// every request. Starting ready with an empty set keeps logged-out visitors
+// from seeing a disabled heart, and useSyncExternalStore uses this snapshot
+// during hydration so the first client render always matches the server HTML.
+const SERVER_SNAPSHOT: WishlistSnapshot = { ids: EMPTY_IDS };
 
-  if (!context) {
-    throw new Error("useWishlist must be used within WishlistProvider.");
-  }
+let snapshot: WishlistSnapshot = SERVER_SNAPSHOT;
+const listeners = new Set<() => void>();
 
-  return context;
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+
+  return () => {
+    listeners.delete(listener);
+  };
 }
 
-export function WishlistProvider({ children }: { children: ReactNode }) {
-  const [ids, setIds] = useState<Set<string>>(() => new Set());
-  const [ready, setReady] = useState(false);
+function getSnapshot() {
+  return snapshot;
+}
 
-  const seed = useCallback((nextIds: string[]) => {
-    setIds(new Set(nextIds));
-    setReady(true);
-  }, []);
+function getServerSnapshot() {
+  return SERVER_SNAPSHOT;
+}
 
-  const setWishlisted = useCallback(
-    (productId: string, wishlisted: boolean) => {
-      setIds((current) => {
-        const next = new Set(current);
+function setSnapshot(next: WishlistSnapshot) {
+  snapshot = next;
 
-        if (wishlisted) {
-          next.add(productId);
-        } else {
-          next.delete(productId);
-        }
+  for (const listener of listeners) {
+    listener();
+  }
+}
 
-        return next;
-      });
-    },
-    []
+export function seedWishlist(ids: string[]) {
+  const unchanged =
+    ids.length === snapshot.ids.size &&
+    ids.every((id) => snapshot.ids.has(id));
+
+  if (unchanged) return;
+
+  setSnapshot({ ids: new Set(ids) });
+}
+
+export function setWishlisted(productId: string, wishlisted: boolean) {
+  const next = new Set(snapshot.ids);
+
+  if (wishlisted) {
+    next.add(productId);
+  } else {
+    next.delete(productId);
+  }
+
+  setSnapshot({ ids: next });
+}
+
+export function useWishlist() {
+  const { ids } = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot
   );
 
-  const value = useMemo(
-    () => ({ ids, ready, seed, setWishlisted }),
-    [ids, ready, seed, setWishlisted]
-  );
-
-  return (
-    <WishlistContext.Provider value={value}>
-      {children}
-    </WishlistContext.Provider>
-  );
+  return { ids, setWishlisted };
 }
 
 export function WishlistSeedClient({ ids }: { ids: string[] }) {
-  const { seed } = useWishlist();
-
   useEffect(() => {
-    seed(ids);
-  }, [ids, seed]);
+    seedWishlist(ids);
+  }, [ids]);
 
   return null;
 }
