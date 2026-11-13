@@ -10,7 +10,7 @@ import {
 import type { Prisma } from "../generated/prisma/client";
 import { prisma } from "./db";
 
-const productCardSelect = {
+export const productCardSelect = {
   id: true,
   name: true,
   slug: true,
@@ -24,12 +24,13 @@ const productCardSelect = {
   variants: { select: { stock: true } },
 } satisfies Prisma.ProductSelect;
 
-type ProductCardRow = Prisma.ProductGetPayload<{
+export type ProductCardRow = Prisma.ProductGetPayload<{
   select: typeof productCardSelect;
 }>;
 
-function toProductCard(row: ProductCardRow): ProductCardProduct {
+export function toProductCard(row: ProductCardRow): ProductCardProduct {
   return {
+    id: row.id,
     name: row.name,
     slug: row.slug,
     price: row.price,

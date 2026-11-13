@@ -1,32 +1,30 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Heart, Loader2, ShoppingBag } from "lucide-react";
+import { Loader2, ShoppingBag } from "lucide-react";
 import { addToCart } from "@/app/cart/actions";
 import { useCartSheet } from "@/components/cart/cart-sheet";
-import { Button } from "@/components/ui/button";
+import { WishlistButton } from "@/components/wishlist/wishlist-button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type PurchaseActionsProps = {
+  productId: string;
   productName: string;
   variantId: string | null;
   quantity: number;
   disabled: boolean;
-  wishlisted?: boolean;
   showWishlist?: boolean;
-  // TODO(phase 10): connect this to the server wishlist action.
-  onToggleWishlist?: () => void;
   className?: string;
 };
 
 export function PurchaseActions({
+  productId,
   productName,
   variantId,
   quantity,
   disabled,
-  wishlisted = false,
   showWishlist = true,
-  onToggleWishlist,
   className,
 }: PurchaseActionsProps) {
   const { openCart } = useCartSheet();
@@ -83,24 +81,15 @@ export function PurchaseActions({
         </Button>
 
         {showWishlist ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-lg"
-            aria-pressed={wishlisted}
-            aria-label={
-              wishlisted
-                ? `حذف ${productName} از علاقه‌مندی‌ها`
-                : `افزودن ${productName} به علاقه‌مندی‌ها`
-            }
-            onClick={onToggleWishlist}
-            className="size-11 shrink-0 sm:size-12"
-          >
-            <Heart
-              className={cn("size-5", wishlisted && "fill-primary text-primary")}
-              aria-hidden="true"
-            />
-          </Button>
+          <WishlistButton
+            productId={productId}
+            productName={productName}
+            className={cn(
+              buttonVariants({ variant: "outline", size: "icon-lg" }),
+              "size-11 shrink-0 sm:size-12"
+            )}
+            iconClassName="size-5"
+          />
         ) : null}
       </div>
 

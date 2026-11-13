@@ -45,15 +45,22 @@ export default async function MockPaymentPage({
     notFound();
   }
 
-  if (
-    order.status !== "PENDING" ||
-    order.paymentStatus !== "PENDING" ||
-    !reference
-  ) {
+  if (order.status !== "PENDING" || order.paymentStatus !== "PENDING") {
     redirect(`/account/orders/${order.orderNumber}`);
   }
 
   const provider = getPaymentProvider();
+
+  // The pay-now link points here without a reference; start a new payment.
+  if (!reference) {
+    const payment = await provider.createPayment({
+      orderNumber: order.orderNumber,
+      amount: order.total,
+    });
+
+    redirect(payment.redirectPath);
+  }
+
   const verification = await provider.verifyPayment(
     { orderNumber: order.orderNumber, amount: order.total },
     reference

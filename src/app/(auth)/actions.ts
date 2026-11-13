@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { safeNextPath } from "@/lib/safe-redirect";
@@ -169,6 +170,7 @@ export async function register(
   }
 
   await createSession(registered.user.id, registered.user.role);
+  revalidatePath("/", "layout");
   redirect(readNext(formData));
 }
 
@@ -235,10 +237,12 @@ export async function login(
   loginLimiter.clear(ipKey);
   loginLimiter.clear(mobileKey);
   await createSession(user.id, user.role);
+  revalidatePath("/", "layout");
   redirect(readNext(formData));
 }
 
 export async function logout(): Promise<void> {
   await destroySession();
+  revalidatePath("/", "layout");
   redirect("/");
 }

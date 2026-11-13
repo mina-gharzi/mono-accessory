@@ -6,6 +6,8 @@ import { Header } from "@/components/layout/header";
 import { HeaderClient } from "@/components/layout/header-client";
 import { CartSheetProvider } from "@/components/cart/cart-sheet";
 import { RtlProvider } from "@/components/providers/rtl-provider";
+import { WishlistProvider } from "@/components/wishlist/wishlist-provider";
+import { WishlistSeed } from "@/components/wishlist/wishlist-seed";
 import "./globals.css";
 
 const pinar = localFont({
@@ -53,15 +55,26 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col">
         <RtlProvider>
-          <CartSheetProvider>
-            <Suspense
-              fallback={<HeaderClient user={undefined} cartCount={0} />}
-            >
-              <Header />
+          <WishlistProvider>
+            <Suspense fallback={null}>
+              <WishlistSeed />
             </Suspense>
-            <main className="flex flex-1 flex-col">{children}</main>
-            <Footer />
-          </CartSheetProvider>
+            <CartSheetProvider>
+              <Suspense
+                fallback={
+                  <HeaderClient
+                    user={undefined}
+                    cartCount={0}
+                    wishlistCount={0}
+                  />
+                }
+              >
+                <Header />
+              </Suspense>
+              <main className="flex flex-1 flex-col">{children}</main>
+              <Footer />
+            </CartSheetProvider>
+          </WishlistProvider>
         </RtlProvider>
       </body>
     </html>

@@ -45,7 +45,6 @@ const navLinks = [
 ];
 
 const countFormatter = new Intl.NumberFormat("fa-IR");
-const wishlistCount = 0;
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -63,9 +62,11 @@ export type HeaderUser = {
 export function HeaderClient({
   user,
   cartCount,
+  wishlistCount,
 }: {
   user: HeaderUser | null | undefined;
   cartCount: number;
+  wishlistCount: number;
 }) {
   const { openCart } = useCartSheet();
   const [scrolled, setScrolled] = useState(false);
@@ -246,8 +247,16 @@ export function HeaderClient({
 
           <Button asChild variant="ghost" size="icon" className="relative">
             <Link
-              href="/wishlist"
-              aria-label={`علاقه‌مندی‌ها، ${countFormatter.format(wishlistCount)} مورد`}
+              href={
+                user === null
+                  ? "/login?next=%2Faccount%2Fwishlist"
+                  : "/account/wishlist"
+              }
+              aria-label={
+                user === null
+                  ? "علاقه‌مندی‌ها، برای مشاهده وارد شوید"
+                  : `علاقه‌مندی‌ها، ${countFormatter.format(wishlistCount)} مورد`
+              }
             >
               <Heart className="size-5" aria-hidden="true" />
               <span

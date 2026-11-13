@@ -1,5 +1,18 @@
 import type { OrderStatus, PaymentStatus } from "@/generated/prisma/client";
 
+export const ORDER_STATUS_VALUES = [
+  "PENDING",
+  "PAID",
+  "PROCESSING",
+  "SHIPPED",
+  "DELIVERED",
+  "CANCELLED",
+] as const satisfies readonly OrderStatus[];
+
+export function isOrderStatus(value: string): value is OrderStatus {
+  return (ORDER_STATUS_VALUES as readonly string[]).includes(value);
+}
+
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   PENDING: "در انتظار پرداخت",
   PAID: "پرداخت شده",

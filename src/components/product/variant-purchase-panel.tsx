@@ -16,6 +16,7 @@ export type VariantOption = {
 };
 
 type VariantPurchasePanelProps = {
+  productId: string;
   productName: string;
   variants: VariantOption[];
   initialSku: string | null;
@@ -34,6 +35,7 @@ function firstAvailable(variants: VariantOption[]): VariantOption | null {
 }
 
 export function VariantPurchasePanel({
+  productId,
   productName,
   variants,
   initialSku,
@@ -306,6 +308,7 @@ export function VariantPurchasePanel({
           </div>
 
           <PurchaseActions
+            productId={productId}
             productName={productName}
             variantId={selectedVariant?.id ?? null}
             quantity={quantity}
@@ -324,6 +327,7 @@ export function VariantPurchasePanel({
           </div>
 
           <PurchaseActions
+            productId={productId}
             productName={productName}
             variantId={selectedVariant?.id ?? null}
             quantity={quantity}

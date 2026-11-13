@@ -4,6 +4,7 @@ import { Prisma } from "@/generated/prisma/client";
 import type { OrderStatus, PaymentStatus } from "@/generated/prisma/client";
 import { CART_MAX_QUANTITY } from "@/lib/cart";
 import { IRAN_PROVINCES, isIranProvince } from "@/lib/iran-provinces";
+import { ORDER_STATUS_VALUES } from "@/lib/order-status";
 import { mobileSchema, toEnglishDigits } from "./auth/mobile";
 import { prisma } from "./db";
 import { calculateTotals, resolveShippingSettings } from "./pricing";
@@ -600,5 +601,148 @@ export async function getCheckoutDefaults(
   return {
     ...order,
     province: isIranProvince(order.province) ? order.province : "",
+  };
+}
+
+export const ORDERS_PAGE_SIZE = 10;
+
+export type OrderListItem = {
+  id: string;
+  orderNumber: string;
+  status: OrderStatus;
+  total: number;
+  createdAt: Date;
+  itemCount: number;
+  thumbnails: { url: string; alt: string }[];
+};
+
+export type UserOrdersResult = {
+  items: OrderListItem[];
+  total: number;
+  totalPages: number;
+  page: number;
+  status: OrderStatus | null;
+};
+
+const orderListSelect = {
+  id: true,
+  orderNumber: true,
+  status: true,
+  total: true,
+  createdAt: true,
+  _count: { select: { items: true } },
+  items: {
+    orderBy: { id: "asc" },
+    take: 3,
+    select: {
+      id: true,
+      variant: {
+        select: {
+          product: {
+            select: {
+              images: {
+                orderBy: { sortOrder: "asc" },
+                take: 1,
+                select: { url: true, alt: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.OrderSelect;
+
+type OrderListRow = Prisma.OrderGetPayload<{ select: typeof orderListSelect }>;
+
+function toOrderListItem(order: OrderListRow): OrderListItem {
+  return {
+    id: order.id,
+    orderNumber: order.orderNumber,
+    status: order.status,
+    total: order.total,
+    createdAt: order.createdAt,
+    itemCount: order._count.items,
+    thumbnails: order.items.flatMap((item) => {
+      const image = item.variant.product.images[0];
+
+      return image ? [image] : [];
+    }),
+  };
+}
+
+const ordersPageSchema = z
+  .preprocess(
+    (value) => {
+      if (typeof value !== "string") return undefined;
+
+      const normalized = value.trim();
+
+      return /^\d+$/.test(normalized) ? Number(normalized) : undefined;
+    },
+    z.number().int().min(1).max(1000).optional()
+  )
+  .catch(undefined);
+
+const ordersStatusSchema = z
+  .preprocess(
+    (value) => (typeof value === "string" ? value : undefined),
+    z.enum(ORDER_STATUS_VALUES).optional()
+  )
+  .catch(undefined);
+
+const ordersQuerySchema = z.object({
+  page: ordersPageSchema,
+  status: ordersStatusSchema,
+});
+
+export function parseOrdersQuery(
+  raw: Record<string, string | string[] | undefined>
+): { page: number; status: OrderStatus | null } {
+  const parsed = ordersQuerySchema.safeParse(raw);
+  const data = parsed.success ? parsed.data : {};
+
+  return {
+    page: data.page ?? 1,
+    status: data.status ?? null,
+  };
+}
+
+export async function getUserOrders(
+  userId: string,
+  options: { page?: number; status?: OrderStatus | null } = {}
+): Promise<UserOrdersResult> {
+  const parsedUser = idSchema.safeParse(userId);
+  const status = options.status ?? null;
+
+  if (!parsedUser.success) {
+    return { items: [], total: 0, totalPages: 1, page: 1, status };
+  }
+
+  const where: Prisma.OrderWhereInput = { userId: parsedUser.data };
+
+  if (status) {
+    where.status = status;
+  }
+
+  const total = await prisma.order.count({ where });
+  const totalPages = Math.max(1, Math.ceil(total / ORDERS_PAGE_SIZE));
+  const requestedPage = Math.max(1, Math.trunc(options.page ?? 1));
+  const page = Math.min(requestedPage, totalPages);
+
+  const orders = await prisma.order.findMany({
+    where,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: (page - 1) * ORDERS_PAGE_SIZE,
+    take: ORDERS_PAGE_SIZE,
+    select: orderListSelect,
+  });
+
+  return {
+    items: orders.map(toOrderListItem),
+    total,
+    totalPages,
+    page,
+    status,
   };
 }

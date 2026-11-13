@@ -10,7 +10,8 @@ import {
   Package,
   XCircle,
 } from "lucide-react";
-import { Container } from "@/components/container";
+import { OrderCancelDialog } from "@/components/account/order-cancel-dialog";
+import { OrderStatusBadge } from "@/components/account/order-status-badge";
 import { ProductImagePlaceholder } from "@/components/product-image-placeholder";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatNumber, formatPrice } from "@/lib/format";
@@ -37,15 +38,6 @@ export const metadata: Metadata = {
 type OrderPageProps = {
   params: Promise<{ orderNumber: string }>;
   searchParams: Promise<{ payment?: string | string[] }>;
-};
-
-const statusStyles: Record<OrderStatus, string> = {
-  PENDING: "border-amber-200 bg-amber-50 text-amber-900",
-  PAID: "border-primary/30 bg-primary/5 text-primary",
-  PROCESSING: "border-sky-200 bg-sky-50 text-sky-900",
-  SHIPPED: "border-indigo-200 bg-indigo-50 text-indigo-900",
-  DELIVERED: "border-emerald-200 bg-emerald-50 text-emerald-900",
-  CANCELLED: "border-destructive/30 bg-destructive/5 text-destructive",
 };
 
 function StatusTimeline({ status }: { status: OrderStatus }) {
@@ -107,7 +99,7 @@ export default async function OrderPage({
   }
 
   return (
-    <Container className="flex flex-1 flex-col gap-8 py-10 sm:py-14">
+    <div className="flex flex-1 flex-col gap-8">
       <header className="flex flex-col gap-2">
         <p className="text-[11px] font-medium tracking-[0.35em] text-primary">
           MONO ORDER
@@ -119,14 +111,7 @@ export default async function OrderPage({
               {order.orderNumber}
             </span>
           </h1>
-          <span
-            className={cn(
-              "inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium",
-              statusStyles[order.status]
-            )}
-          >
-            {ORDER_STATUS_LABELS[order.status]}
-          </span>
+          <OrderStatusBadge status={order.status} />
         </div>
         <p className="text-sm text-muted-foreground">
           تاریخ ثبت: {formatDate(order.createdAt)}
@@ -322,11 +307,29 @@ export default async function OrderPage({
             <StatusTimeline status={order.status} />
           </section>
 
+          {order.status === "PENDING" ? (
+            <section
+              aria-label="اقدام‌های سفارش"
+              className="flex flex-col gap-2"
+            >
+              <Button asChild>
+                <Link href={`/payment/mock/${order.orderNumber}`}>
+                  <CreditCard className="size-4" aria-hidden="true" />
+                  پرداخت سفارش
+                </Link>
+              </Button>
+              <OrderCancelDialog
+                orderId={order.id}
+                orderNumber={order.orderNumber}
+              />
+            </section>
+          ) : null}
+
           <Button asChild variant="outline">
             <Link href="/account/orders">بازگشت به سفارش‌ها</Link>
           </Button>
         </aside>
       </div>
-    </Container>
+    </div>
   );
 }

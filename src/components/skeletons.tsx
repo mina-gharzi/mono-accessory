@@ -32,6 +32,19 @@ export function PageSkeleton({
   );
 }
 
+export function OrdersListSkeleton({ count = 5 }: { count?: number }) {
+  return (
+    <div className="flex flex-col gap-3" aria-hidden="true">
+      {Array.from({ length: count }, (_, index) => (
+        <div
+          key={index}
+          className="h-28 animate-pulse rounded-lg bg-muted motion-reduce:animate-none"
+        />
+      ))}
+    </div>
+  );
+}
+
 export function ProductDetailSkeleton() {
   return (
     <Container

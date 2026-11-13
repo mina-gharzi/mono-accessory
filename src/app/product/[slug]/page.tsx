@@ -116,6 +116,7 @@ async function ProductContent({ params, searchParams }: ProductPageProps) {
           <div className="flex flex-col gap-7">
             <ProductSummary product={product} />
             <VariantPurchasePanel
+              productId={product.id}
               productName={product.name}
               variants={product.variants}
               initialSku={selectedVariant?.sku ?? null}

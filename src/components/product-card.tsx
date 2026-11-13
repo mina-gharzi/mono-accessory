@@ -3,12 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Heart } from "lucide-react";
 import { ProductImagePlaceholder } from "@/components/product-image-placeholder";
+import { WishlistButton } from "@/components/wishlist/wishlist-button";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export type ProductCardProduct = {
+  id: string;
   name: string;
   slug: string;
   price: number;
@@ -28,7 +29,6 @@ type ProductCardProps = {
 
 export function ProductCard({ product, className }: ProductCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
-  const [wishlisted, setWishlisted] = useState(false);
 
   const discount =
     product.compareAtPrice && product.compareAtPrice > product.price
@@ -71,22 +71,12 @@ export function ProductCard({ product, className }: ProductCardProps) {
           </span>
         ) : null}
 
-        <button
-          type="button"
-          aria-label={
-            wishlisted
-              ? `حذف ${product.name} از علاقه‌مندی‌ها`
-              : `افزودن ${product.name} به علاقه‌مندی‌ها`
-          }
-          aria-pressed={wishlisted}
-          onClick={() => setWishlisted((value) => !value)}
-          className="absolute bottom-3 end-3 z-20 inline-flex size-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        >
-          <Heart
-            className={cn("size-4", wishlisted && "fill-primary text-primary")}
-            aria-hidden="true"
-          />
-        </button>
+        <WishlistButton
+          productId={product.id}
+          productName={product.name}
+          className="absolute bottom-3 end-3 z-20 size-9 rounded-full bg-background/90 text-foreground shadow-sm hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          iconClassName="size-4"
+        />
       </div>
 
       <div className="flex flex-col gap-1">
