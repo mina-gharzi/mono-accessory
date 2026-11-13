@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { Gem, Pencil, Plus } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { CategoryDeleteButton } from "@/components/admin/category-delete-button";
@@ -31,22 +32,11 @@ const columns: DataTableColumn[] = [
   { key: "actions", label: "عملیات", className: "text-end" },
 ];
 
-export default async function CategoriesPage({
+type CategoriesSearchParams = PageProps<"/admin/categories">["searchParams"];
+
+export default function CategoriesPage({
   searchParams,
 }: PageProps<"/admin/categories">) {
-  const [categories, params] = await Promise.all([
-    listCategories(),
-    searchParams,
-  ]);
-
-  const status = typeof params.status === "string" ? params.status : null;
-  const successMessage =
-    status === "created"
-      ? "دسته‌بندی با موفقیت ایجاد شد."
-      : status === "updated"
-        ? "تغییرات دسته‌بندی با موفقیت ذخیره شد."
-        : null;
-
   return (
     <div className="flex flex-col gap-6">
       <AdminPageHeader
@@ -62,6 +52,33 @@ export default async function CategoriesPage({
         }
       />
 
+      <Suspense fallback={<CategoriesFallback />}>
+        <CategoriesTable searchParams={searchParams} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function CategoriesTable({
+  searchParams,
+}: {
+  searchParams: CategoriesSearchParams;
+}) {
+  const [categories, params] = await Promise.all([
+    listCategories(),
+    searchParams,
+  ]);
+
+  const status = typeof params.status === "string" ? params.status : null;
+  const successMessage =
+    status === "created"
+      ? "دسته‌بندی با موفقیت ایجاد شد."
+      : status === "updated"
+        ? "تغییرات دسته‌بندی با موفقیت ذخیره شد."
+        : null;
+
+  return (
+    <>
       <InlineMessage tone="success" message={successMessage} />
 
       <DataTable
@@ -131,6 +148,24 @@ export default async function CategoriesPage({
           </tr>
         ))}
       </DataTable>
+    </>
+  );
+}
+
+function CategoriesFallback() {
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="sr-only" role="status">
+        در حال بارگذاری دسته‌بندی‌ها
+      </p>
+      <div
+        className="h-10 animate-pulse rounded-lg border border-border bg-muted/60 motion-reduce:animate-none"
+        aria-hidden="true"
+      />
+      <div
+        className="h-64 animate-pulse rounded-lg border border-border bg-muted/60 motion-reduce:animate-none"
+        aria-hidden="true"
+      />
     </div>
   );
 }
