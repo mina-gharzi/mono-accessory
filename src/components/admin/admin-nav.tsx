@@ -29,8 +29,8 @@ const adminLinks = [
   { href: "/admin", label: "نمای کلی", icon: LayoutDashboard, exact: true },
   { href: "/admin/products", label: "محصولات", icon: Package },
   { href: "/admin/categories", label: "دسته‌بندی‌ها", icon: Tags },
-  { href: "/admin/orders", label: "سفارش‌ها", icon: ShoppingCart, later: true },
-  { href: "/admin/customers", label: "مشتریان", icon: Users, later: true },
+  { href: "/admin/orders", label: "سفارش‌ها", icon: ShoppingCart },
+  { href: "/admin/customers", label: "مشتریان", icon: Users },
   { href: "/admin/discounts", label: "تخفیف‌ها", icon: Percent, later: true },
   { href: "/admin/reviews", label: "دیدگاه‌ها", icon: MessageSquare, later: true },
 ];
