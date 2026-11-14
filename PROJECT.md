@@ -31,7 +31,7 @@ Multi-vendor, wallet, loyalty, mobile app, real payment, OTP, advanced inventory
 - [x] 9 Checkout, mock payment, orders
 - [x] 10 User account (orders, wishlist)
 - [x] 11a Admin shell, image upload infrastructure, categories
-- [ ] 11b Admin products, stock and variants
+- [x] 11b Admin products, stock and variants
 - [ ] 12 Admin orders and dashboard
 - [ ] 13 Static pages, 404, SEO
 - [ ] 14 Tests, README, env docs

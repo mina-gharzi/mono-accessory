@@ -2,7 +2,13 @@
 
 import Image from "next/image";
 import { useId, useState } from "react";
-import { ImagePlus, Loader2, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ImagePlus,
+  Loader2,
+  X,
+} from "lucide-react";
 import { uploadImageAction } from "@/app/admin/uploads/actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,15 +17,37 @@ const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const FILE_TOO_LARGE = "حجم تصویر نباید بیشتر از ۵ مگابایت باشد.";
 const UPLOAD_FAILED = "بارگذاری تصویر ناموفق بود. لطفاً دوباره تلاش کنید.";
 
+export type UploadedImage = {
+  url: string;
+  alt?: string;
+};
+
 type ImageUploaderProps = {
   name: string;
   label: string;
-  defaultValue?: string[];
+  defaultValue?: (string | UploadedImage)[];
   multiple?: boolean;
   maxFiles?: number;
   error?: string;
   className?: string;
+  reorderable?: boolean;
+  altName?: string;
 };
+
+type ImageItem = {
+  url: string;
+  alt: string;
+};
+
+function toItems(defaultValue: (string | UploadedImage)[]): ImageItem[] {
+  return defaultValue
+    .map((item) =>
+      typeof item === "string"
+        ? { url: item, alt: "" }
+        : { url: item.url, alt: item.alt ?? "" }
+    )
+    .filter((item) => item.url.length > 0);
+}
 
 export function ImageUploader({
   name,
@@ -29,26 +57,56 @@ export function ImageUploader({
   maxFiles = 10,
   error,
   className,
+  reorderable = false,
+  altName,
 }: ImageUploaderProps) {
   const inputId = useId();
   const hintId = `${inputId}-hint`;
-  const [urls, setUrls] = useState<string[]>(() =>
-    defaultValue.filter((url) => url.length > 0)
-  );
+  const [items, setItems] = useState<ImageItem[]>(() => toItems(defaultValue));
   const [pending, setPending] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
   const visibleError = localError ?? error ?? null;
   const limit = multiple ? Math.max(1, maxFiles) : 1;
+  const extended = reorderable || Boolean(altName);
 
   function removeAt(index: number) {
     if (pending) {
       return;
     }
 
-    setUrls((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    setItems((current) => current.filter((_, itemIndex) => itemIndex !== index));
     setLocalError(null);
+  }
+
+  function moveAt(index: number, direction: -1 | 1) {
+    if (pending) {
+      return;
+    }
+
+    setItems((current) => {
+      const target = index + direction;
+
+      if (target < 0 || target >= current.length) {
+        return current;
+      }
+
+      const next = [...current];
+      const [item] = next.splice(index, 1);
+
+      next.splice(target, 0, item);
+
+      return next;
+    });
+  }
+
+  function setAltAt(index: number, alt: string) {
+    setItems((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, alt } : item
+      )
+    );
   }
 
   async function uploadFiles(fileList: FileList | File[]) {
@@ -57,7 +115,7 @@ export function ImageUploader({
     }
 
     const files = Array.from(fileList);
-    const available = multiple ? Math.max(0, limit - urls.length) : 1;
+    const available = multiple ? Math.max(0, limit - items.length) : 1;
 
     if (files.length === 0) {
       return;
@@ -83,7 +141,7 @@ export function ImageUploader({
     setPending(true);
     setLocalError(null);
 
-    const uploaded: string[] = [];
+    const uploaded: ImageItem[] = [];
 
     try {
       for (const file of selected) {
@@ -97,12 +155,14 @@ export function ImageUploader({
           break;
         }
 
-        uploaded.push(result.url);
+        uploaded.push({ url: result.url, alt: "" });
       }
 
       if (uploaded.length > 0) {
-        setUrls((current) =>
-          multiple ? [...current, ...uploaded].slice(0, limit) : uploaded.slice(0, 1)
+        setItems((current) =>
+          multiple
+            ? [...current, ...uploaded].slice(0, limit)
+            : uploaded.slice(0, 1)
         );
       }
     } catch {
@@ -116,8 +176,8 @@ export function ImageUploader({
     <div className={cn("flex flex-col gap-3", className)}>
       <p className="text-sm font-medium text-dark">{label}</p>
 
-      {urls.map((url, index) => (
-        <input key={`${url}-${index}`} type="hidden" name={name} value={url} />
+      {items.map((item, index) => (
+        <input key={`${item.url}-${index}`} type="hidden" name={name} value={item.url} />
       ))}
 
       <div
@@ -179,12 +239,91 @@ export function ImageUploader({
         </label>
       </div>
 
-      {urls.length > 0 ? (
+      {items.length > 0 && extended ? (
         <ul className="flex flex-wrap gap-3">
-          {urls.map((url, index) => (
-            <li key={`${url}-preview`} className="relative">
+          {items.map((item, index) => (
+            <li
+              key={`${item.url}-preview`}
+              className="flex w-36 flex-col gap-2 rounded-md border border-border bg-card p-2"
+            >
+              <div className="relative">
+                <Image
+                  src={item.url}
+                  alt={`پیش‌نمایش تصویر ${index + 1}`}
+                  width={112}
+                  height={112}
+                  unoptimized
+                  className="aspect-square w-full rounded-md border border-border object-cover"
+                />
+                {multiple && index === 0 ? (
+                  <span className="absolute start-1 top-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
+                    تصویر اصلی
+                  </span>
+                ) : null}
+              </div>
+
+              {altName ? (
+                <input
+                  type="text"
+                  name={altName}
+                  value={item.alt}
+                  onChange={(event) => setAltAt(index, event.target.value)}
+                  placeholder="متن جایگزین"
+                  aria-label={`متن جایگزین تصویر ${index + 1}`}
+                  className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/80 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+                />
+              ) : null}
+
+              <div className="flex items-center justify-between gap-1">
+                {reorderable ? (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      disabled={pending || index === 0}
+                      aria-label={`انتقال تصویر ${index + 1} به بالا`}
+                      onClick={() => moveAt(index, -1)}
+                    >
+                      <ArrowUp className="size-3.5" aria-hidden="true" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      disabled={pending || index === items.length - 1}
+                      aria-label={`انتقال تصویر ${index + 1} به پایین`}
+                      onClick={() => moveAt(index, 1)}
+                    >
+                      <ArrowDown className="size-3.5" aria-hidden="true" />
+                    </Button>
+                  </div>
+                ) : (
+                  <span />
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  disabled={pending}
+                  aria-label={`حذف تصویر ${index + 1}`}
+                  onClick={() => removeAt(index)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <X className="size-3.5" aria-hidden="true" />
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {items.length > 0 && !extended ? (
+        <ul className="flex flex-wrap gap-3">
+          {items.map((item, index) => (
+            <li key={`${item.url}-preview`} className="relative">
               <Image
-                src={url}
+                src={item.url}
                 alt={`پیش‌نمایش تصویر ${index + 1}`}
                 width={112}
                 height={112}

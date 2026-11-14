@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 
 const adminLinks = [
   { href: "/admin", label: "نمای کلی", icon: LayoutDashboard, exact: true },
-  { href: "/admin/products", label: "محصولات", icon: Package, later: true },
+  { href: "/admin/products", label: "محصولات", icon: Package },
   { href: "/admin/categories", label: "دسته‌بندی‌ها", icon: Tags },
   { href: "/admin/orders", label: "سفارش‌ها", icon: ShoppingCart, later: true },
   { href: "/admin/customers", label: "مشتریان", icon: Users, later: true },

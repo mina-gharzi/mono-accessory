@@ -8,6 +8,9 @@ Read PROJECT.md before each task. Rules:
 - Respect prefers-reduced-motion. Every list/page has loading, empty and error states.
 - UI must be RTL-correct.
 - After each task run typecheck, lint and build; fix failures; report only failures and the list of files changed.
+- Admin and account list pages are a synchronous page shell (heading, actions) plus an async
+  child that awaits data and searchParams inside `<Suspense>` with a skeleton fallback (see
+  `src/app/admin/categories/page.tsx`). Never await data or searchParams at a page's top level.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
