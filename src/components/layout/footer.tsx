@@ -1,5 +1,10 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
+import {
+  instagramDisplay,
+  instagramUrl,
+  siteConfig,
+} from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 import { JalaliYear } from "./jalali-year";
 
@@ -17,7 +22,7 @@ const shopLinks: FooterLink[] = [
 
 const helpLinks: FooterLink[] = [
   { href: "/faq", label: "سؤالات متداول" },
-  { href: "/shipping-and-returns", label: "ارسال و بازگشت" },
+  { href: "/shipping-returns", label: "ارسال و بازگشت" },
   { href: "/terms", label: "قوانین و مقررات" },
 ];
 
@@ -27,22 +32,21 @@ const monoLinks: FooterLink[] = [
 ];
 
 const focusRing =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/70 focus-visible:ring-offset-2 focus-visible:ring-offset-dark";
+
+const linkClass = cn(
+  "w-fit rounded-md text-sm text-primary-foreground/65 transition-colors hover:text-primary-foreground",
+  focusRing
+);
 
 function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) {
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-sm font-bold text-dark">{title}</h2>
-      <ul className="flex flex-col gap-3">
+      <h2 className="text-sm font-bold text-primary-foreground">{title}</h2>
+      <ul className="flex flex-col gap-2.5">
         {links.map((link) => (
           <li key={link.href}>
-            <Link
-              href={link.href}
-              className={cn(
-                "rounded-md text-sm text-muted-foreground transition-colors hover:text-primary",
-                focusRing
-              )}
-            >
+            <Link href={link.href} className={linkClass}>
               {link.label}
             </Link>
           </li>
@@ -54,55 +58,96 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-card/60">
-      <Container className="py-12 sm:py-16">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
-          <div className="flex flex-col gap-4">
-            <Link
-              href="/"
-              aria-label="مونو اکسسوری، صفحهٔ اصلی"
-              className={cn("w-fit rounded-md", focusRing)}
-            >
-              <span
+    <footer className="mt-8 pb-4 sm:mt-12 sm:pb-6">
+      <Container>
+        <div className="relative isolate overflow-hidden rounded-3xl bg-dark text-primary-foreground">
+          {/* درخشش بوردو و دایره‌های تزئینی */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_90%_0%,rgb(128_0_32/0.6),transparent_50%),radial-gradient(circle_at_5%_100%,rgb(176_96_110/0.25),transparent_45%)]"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute -inset-e-16 -top-16 -z-10 size-48 rounded-full border border-primary-foreground/15"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-e-24 -top-8 -z-10 size-24 rounded-full border border-primary-foreground/10"
+          />
+          {/* قاب داخلی */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-2 rounded-[1.25rem] border border-primary-foreground/15 sm:inset-3"
+          />
+
+          <div className="px-7 pt-10 sm:px-12 sm:pt-12">
+            <div className="mb-8 flex flex-col gap-2">
+              <p
                 dir="ltr"
-                className="font-heading text-xl font-extrabold tracking-[0.32em] text-dark"
+                className="font-heading text-lg font-extrabold tracking-[0.2em] text-primary-foreground"
               >
-                MONO
-              </span>
-            </Link>
-            <p className="max-w-xs text-sm leading-7 text-muted-foreground">
-              جواهرات استیل، اکسسوری و عینک؛ انتخاب‌هایی مینیمال برای زنان
-              امروز.
-            </p>
-            <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
-              <a
-                href="mailto:hello@mono.example"
-                dir="ltr"
-                className={cn("w-fit rounded-md hover:text-primary", focusRing)}
-              >
-                hello@mono.example
-              </a>
-              <a
-                href="tel:+982100000000"
-                dir="ltr"
-                className={cn("w-fit rounded-md hover:text-primary", focusRing)}
-              >
-                ۰۲۱ ۰۰۰ ۰۰۰۰
-              </a>
-              <span>تهران، ایران</span>
+                {siteConfig.name}
+              </p>
+              <p className="max-w-md text-sm leading-7 text-primary-foreground/65">
+                {siteConfig.tagline}
+              </p>
             </div>
+
+            <div className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-4">
+              <FooterColumn title="فروشگاه" links={shopLinks} />
+              <FooterColumn title="پشتیبانی" links={helpLinks} />
+              <FooterColumn title="مونو" links={monoLinks} />
+
+              <div className="flex flex-col gap-4">
+                <h2 className="text-sm font-bold text-primary-foreground">
+                  تماس
+                </h2>
+                <div className="flex flex-col gap-2.5">
+                  <a
+                    href={`mailto:${siteConfig.email}`}
+                    dir="ltr"
+                    className={cn(linkClass, "self-start")}
+                  >
+                    {siteConfig.email}
+                  </a>
+                  <a
+                    href={`tel:${siteConfig.phone}`}
+                    dir="ltr"
+                    className={cn(linkClass, "self-start")}
+                  >
+                    {siteConfig.phoneDisplay}
+                  </a>
+                  <a
+                    href={instagramUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    dir="ltr"
+                    className={cn(linkClass, "self-start")}
+                  >
+                    {instagramDisplay}
+                  </a>
+                  <span className="text-sm text-primary-foreground/65">
+                    {siteConfig.address}
+                  </span>
+                  <span className="text-sm text-primary-foreground/65">
+                    {siteConfig.workingHours}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              aria-hidden="true"
+              dir="ltr"
+              className="pointer-events-none mt-8 select-none text-center font-heading text-[22vw] font-extrabold leading-none tracking-[0.2em] text-primary-foreground/[0.07] sm:text-[11vw] lg:text-[8rem]"
+            >
+              {siteConfig.shortName}
+            </div>
+
+            <p className="pb-7 text-center text-xs text-primary-foreground/50 sm:pb-8">
+              © <JalaliYear /> {siteConfig.name}. تمام حقوق محفوظ است.
+            </p>
           </div>
-
-          <FooterColumn title="فروشگاه" links={shopLinks} />
-          <FooterColumn title="پشتیبانی" links={helpLinks} />
-          <FooterColumn title="مونو" links={monoLinks} />
-        </div>
-
-        <div className="mt-10 flex flex-col gap-2 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            © <JalaliYear /> MONO ACCESSORY. تمام حقوق محفوظ است.
-          </p>
-          <p>طراحی و توسعه در ایران</p>
         </div>
       </Container>
     </footer>

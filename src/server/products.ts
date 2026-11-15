@@ -414,6 +414,19 @@ export async function getActiveCollectionsList(): Promise<HomeCollection[]> {
   });
 }
 
+export type SitemapProduct = {
+  slug: string;
+  createdAt: Date;
+};
+
+export async function getSitemapProducts(): Promise<SitemapProduct[]> {
+  return prisma.product.findMany({
+    where: { isActive: true },
+    orderBy: { createdAt: "desc" },
+    select: { slug: true, createdAt: true },
+  });
+}
+
 const productSlugSchema = z
   .string()
   .trim()

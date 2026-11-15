@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { connection } from "next/server";
 import { ArrowLeft, BadgeCheck, RotateCcw, Truck } from "lucide-react";
 import { Container } from "@/components/container";
@@ -19,34 +19,62 @@ import {
   getRecommendedProducts,
   type HomeCollection,
 } from "@/server/products";
+import { formatNumber } from "@/lib/format";
+import { siteConfig } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "مونو اکسسوری | جواهرات استیل، عینک و اکسسوری زنانه",
   description:
     "خرید آنلاین گردنبند، گوشواره، انگشتر و عینک آفتابی از مونو اکسسوری؛ طراحی مینیمال، کیفیت ماندگار و ارسال سریع به سراسر ایران.",
+  alternates: {
+    canonical: "/",
+  },
 };
 
 const productGridClassName =
-  "grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 md:grid-cols-4";
+  "grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:grid-cols-4";
 
 const brandValues = [
   {
     icon: Truck,
     title: "ارسال سریع",
-    description: "ارسال به سراسر ایران؛ رایگان برای خرید بالای ۱٫۵ میلیون تومان.",
+    description: "بسته‌بندی محافظت‌شده و ارسال به سراسر ایران",
   },
   {
     icon: RotateCcw,
     title: "بازگشت آسان",
-    description: "تا ۷ روز پس از دریافت، بدون دردسر و با هماهنگی قبلی.",
+    description: `تا ${formatNumber(siteConfig.returnWindowDays)} روز پس از دریافت`,
   },
   {
     icon: BadgeCheck,
     title: "کیفیت تضمین‌شده",
-    description: "مواد ماندگار و بررسی کیفیت هر قطعه پیش از ارسال.",
+    description: "بررسی هر قطعه پیش از ارسال",
   },
 ];
+
+function Section({
+  title,
+  href,
+  muted = false,
+  children,
+}: {
+  title: string;
+  href?: string;
+  muted?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <section className={cn("py-16 sm:py-24", muted && "bg-secondary/40")}>
+      <Container className="flex flex-col gap-10">
+        <Reveal>
+          <SectionHeading title={title} href={href} />
+        </Reveal>
+        {children}
+      </Container>
+    </section>
+  );
+}
 
 function ProductGrid({ products }: { products: ProductCardProduct[] }) {
   return (
@@ -74,19 +102,19 @@ function CollectionsSkeleton() {
       className="grid gap-4 sm:gap-5 md:grid-cols-3 md:grid-rows-2"
       aria-hidden="true"
     >
-      <div className="aspect-[4/5] animate-pulse rounded-xl bg-muted motion-reduce:animate-none md:col-span-2 md:row-span-2 md:aspect-auto md:min-h-[480px]" />
-      <div className="aspect-[4/5] animate-pulse rounded-xl bg-muted motion-reduce:animate-none md:aspect-auto md:min-h-[232px]" />
-      <div className="aspect-[4/5] animate-pulse rounded-xl bg-muted motion-reduce:animate-none md:aspect-auto md:min-h-[232px]" />
+      <div className="aspect-4/5 animate-pulse rounded-3xl bg-muted motion-reduce:animate-none md:col-span-2 md:row-span-2 md:aspect-auto md:min-h-120" />
+      <div className="aspect-4/5 animate-pulse rounded-3xl bg-muted motion-reduce:animate-none md:aspect-auto md:min-h-58" />
+      <div className="aspect-4/5 animate-pulse rounded-3xl bg-muted motion-reduce:animate-none md:aspect-auto md:min-h-58" />
     </div>
   );
 }
 
 function OffersSkeleton() {
   return (
-    <section className="py-12 sm:py-16">
-      <Container className="flex flex-col gap-8">
+    <section className="py-16 sm:py-24">
+      <Container className="flex flex-col gap-10">
         <div
-          className="h-40 animate-pulse rounded-xl bg-muted motion-reduce:animate-none"
+          className="h-32 animate-pulse rounded-3xl bg-muted motion-reduce:animate-none"
           aria-hidden="true"
         />
         <GridSkeleton />
@@ -105,41 +133,43 @@ function CollectionTile({
   return (
     <Link
       href={`/collections/${collection.slug}`}
+      aria-label={collection.name}
       className={cn(
-        "group relative flex overflow-hidden rounded-xl bg-dark text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "group relative flex overflow-hidden rounded-3xl bg-dark text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         featured
-          ? "aspect-[4/5] md:col-span-2 md:row-span-2 md:aspect-auto md:min-h-[480px]"
-          : "aspect-[4/5] md:aspect-auto md:min-h-[232px]"
+          ? "aspect-4/5 md:col-span-2 md:row-span-2 md:aspect-auto md:min-h-120"
+          : "aspect-4/5 md:aspect-auto md:min-h-58"
       )}
     >
       <Image
         src={collection.image}
-        alt={collection.name}
+        alt=""
         fill
         sizes={
           featured
             ? "(min-width: 768px) 66vw, 100vw"
             : "(min-width: 768px) 33vw, 100vw"
         }
-        className="object-cover transition-transform duration-700 motion-safe:group-hover:scale-[1.03]"
+        className="object-cover transition-transform duration-700 motion-safe:group-hover:scale-[1.04]"
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-gradient-to-t from-dark/90 via-dark/35 to-transparent"
+        className="absolute inset-0 bg-linear-to-t from-dark/75 via-dark/10 to-transparent"
       />
-      <div className="relative mt-auto flex flex-col gap-2 p-5 sm:p-6">
-        <h3 className="font-heading text-xl font-extrabold sm:text-2xl">
+      <div className="relative mt-auto flex w-full items-end justify-between gap-4 p-5 sm:p-7">
+        <h3
+          className={cn(
+            "font-heading font-extrabold",
+            featured ? "text-2xl sm:text-3xl" : "text-xl"
+          )}
+        >
           {collection.name}
         </h3>
-        <p className="line-clamp-2 max-w-sm text-sm leading-6 text-primary-foreground/80">
-          {collection.description}
-        </p>
-        <span className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium">
-          مشاهدهٔ مجموعه
-          <ArrowLeft
-            className="size-4 transition-transform motion-safe:group-hover:-translate-x-0.5"
-            aria-hidden="true"
-          />
+        <span
+          aria-hidden="true"
+          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-foreground text-dark transition-transform duration-300 motion-safe:group-hover:-translate-x-1"
+        >
+          <ArrowLeft className="size-4" />
         </span>
       </div>
     </Link>
@@ -211,7 +241,7 @@ async function BestSellersRow() {
 
   return (
     <Reveal delay={0.05}>
-      <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:thin] sm:mx-0 sm:px-0 md:grid md:grid-cols-4 md:gap-x-6 md:gap-y-8 md:overflow-visible md:pb-0">
+      <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 scrollbar-thin sm:mx-0 sm:px-0 md:grid md:grid-cols-4 md:gap-x-6 md:gap-y-10 md:overflow-visible md:pb-0">
         {products.map((product) => (
           <ProductCard
             key={product.slug}
@@ -255,24 +285,25 @@ async function OffersSection() {
   }
 
   return (
-    <section className="py-12 sm:py-16">
-      <Container className="flex flex-col gap-8">
+    <section className="py-16 sm:py-24">
+      <Container className="flex flex-col gap-10">
         <Reveal>
-          <div className="relative overflow-hidden rounded-xl bg-primary text-primary-foreground">
+          <div className="relative isolate overflow-hidden rounded-3xl bg-primary text-primary-foreground">
             <div
               aria-hidden="true"
-              className="absolute -end-12 -top-12 size-48 rounded-full border border-primary-foreground/15"
+              className="absolute -inset-e-16 -top-16 -z-10 size-56 rounded-full border border-primary-foreground/15"
             />
-            <div className="relative flex flex-col gap-3 px-6 py-8 sm:px-10 sm:py-10">
-              <p className="text-[11px] font-medium tracking-[0.35em] text-primary-foreground/70">
+            <div
+              aria-hidden="true"
+              className="absolute inset-e-20 -bottom-20 -z-10 size-40 rounded-full border border-primary-foreground/10"
+            />
+            <div className="flex flex-col gap-2 px-6 py-8 sm:px-12 sm:py-10">
+              <p className="text-[11px] font-medium tracking-[0.4em] text-primary-foreground/70">
                 MONO OFFERS
               </p>
-              <h2 className="font-heading text-2xl font-extrabold sm:text-3xl">
+              <h2 className="font-heading text-2xl font-extrabold sm:text-4xl">
                 پیشنهادهای این هفته
               </h2>
-              <p className="max-w-xl text-sm leading-7 text-primary-foreground/80">
-                قطعه‌های منتخب با قیمت ویژه؛ فرصتی کوتاه برای تکمیل استایل.
-              </p>
             </div>
           </div>
         </Reveal>
@@ -286,26 +317,28 @@ async function OffersSection() {
 
 function BrandValues() {
   return (
-    <section className="border-y border-border/60 bg-card/60">
-      <Container className="grid gap-6 py-8 sm:grid-cols-3 sm:gap-8">
-        {brandValues.map(({ icon: Icon, title, description }) => (
-          <div key={title} className="flex items-start gap-3">
-            <span
-              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary"
-              aria-hidden="true"
-            >
-              <Icon className="size-5" />
-            </span>
-            <div>
-              <h2 className="font-heading text-base font-bold text-dark">
-                {title}
-              </h2>
-              <p className="mt-1 text-xs leading-6 text-muted-foreground">
-                {description}
-              </p>
-            </div>
-          </div>
-        ))}
+    <section className="pb-16 sm:pb-24">
+      <Container>
+        <ul className="grid gap-6 rounded-3xl bg-card px-6 py-8 sm:grid-cols-3 sm:gap-8 sm:px-10">
+          {brandValues.map(({ icon: Icon, title, description }) => (
+            <li key={title} className="flex items-center gap-4">
+              <span
+                className="flex size-12 shrink-0 items-center justify-center rounded-full bg-secondary text-primary"
+                aria-hidden="true"
+              >
+                <Icon className="size-5" />
+              </span>
+              <div>
+                <p className="font-heading text-base font-bold text-dark">
+                  {title}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {description}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </Container>
     </section>
   );
@@ -316,64 +349,29 @@ export default function Home() {
     <div className="flex flex-1 flex-col">
       <Hero />
 
-      <section className="py-12 sm:py-16">
-        <Container className="flex flex-col gap-8">
-          <Reveal>
-            <SectionHeading
-              title="مجموعه‌ها"
-              subtitle="از پرفروش‌ها تا هدیه؛ انتخاب‌هایی برای هر لحظه."
-            />
-          </Reveal>
-          <Suspense fallback={<CollectionsSkeleton />}>
-            <CollectionsGrid />
-          </Suspense>
-        </Container>
-      </section>
+      <Section title="مجموعه‌ها">
+        <Suspense fallback={<CollectionsSkeleton />}>
+          <CollectionsGrid />
+        </Suspense>
+      </Section>
 
-      <section className="border-t border-border/60 py-12 sm:py-16">
-        <Container className="flex flex-col gap-8">
-          <Reveal>
-            <SectionHeading
-              title="تازه‌ها"
-              subtitle="جدیدترین قطعه‌هایی که به مونو اضافه شده‌اند."
-              href="/shop"
-            />
-          </Reveal>
-          <Suspense fallback={<GridSkeleton />}>
-            <NewArrivalsGrid />
-          </Suspense>
-        </Container>
-      </section>
+      <Section title="تازه‌ها" href="/shop">
+        <Suspense fallback={<GridSkeleton />}>
+          <NewArrivalsGrid />
+        </Suspense>
+      </Section>
 
-      <section className="border-y border-border/60 bg-secondary/40 py-12 sm:py-16">
-        <Container className="flex flex-col gap-8">
-          <Reveal>
-            <SectionHeading
-              title="پرفروش‌ها"
-              subtitle="محبوب‌ترین قطعه‌های مونو به انتخاب مشتریان."
-              href="/shop"
-            />
-          </Reveal>
-          <Suspense fallback={<GridSkeleton />}>
-            <BestSellersRow />
-          </Suspense>
-        </Container>
-      </section>
+      <Section title="پرفروش‌ها" href="/shop" muted>
+        <Suspense fallback={<GridSkeleton />}>
+          <BestSellersRow />
+        </Suspense>
+      </Section>
 
-      <section className="py-12 sm:py-16">
-        <Container className="flex flex-col gap-8">
-          <Reveal>
-            <SectionHeading
-              title="پیشنهاد مونو"
-              subtitle="انتخاب‌های ویژه برای تکمیل استایل روزمره."
-              href="/shop"
-            />
-          </Reveal>
-          <Suspense fallback={<GridSkeleton />}>
-            <RecommendedGrid />
-          </Suspense>
-        </Container>
-      </section>
+      <Section title="پیشنهاد مونو" href="/shop">
+        <Suspense fallback={<GridSkeleton />}>
+          <RecommendedGrid />
+        </Suspense>
+      </Section>
 
       <Suspense fallback={<OffersSkeleton />}>
         <OffersSection />

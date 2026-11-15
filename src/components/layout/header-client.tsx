@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
   ChevronDown,
@@ -35,6 +36,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { siteConfig } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -50,7 +52,7 @@ const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 const sheetLinkClass = cn(
-  "flex items-center gap-2 rounded-md px-3 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted",
+  "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted",
   focusRing
 );
 
@@ -58,6 +60,43 @@ export type HeaderUser = {
   firstName: string;
   isAdmin: boolean;
 };
+
+function CountBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+
+  return (
+    <span
+      aria-hidden="true"
+      className="absolute top-1 inset-e-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground ring-2 ring-background"
+    >
+      {count > 99 ? "+۹۹" : countFormatter.format(count)}
+    </span>
+  );
+}
+
+function Logo() {
+  return (
+    <Link
+      href="/"
+      aria-label={`${siteConfig.nameFa}، صفحهٔ اصلی`}
+      className={cn("flex items-center gap-3 rounded-md px-1", focusRing)}
+    >
+      <span
+        dir="ltr"
+        className="font-heading text-xl font-extrabold tracking-[0.32em] text-dark"
+      >
+        {siteConfig.shortName}
+      </span>
+      <span
+        aria-hidden="true"
+        className="hidden h-4 w-px bg-border sm:block"
+      />
+      <span className="hidden text-[11px] text-muted-foreground sm:inline">
+        {siteConfig.brandLabel}
+      </span>
+    </Link>
+  );
+}
 
 export function HeaderClient({
   user,
@@ -69,6 +108,7 @@ export function HeaderClient({
   wishlistCount: number;
 }) {
   const { openCart } = useCartSheet();
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [loggingOut, startLogout] = useTransition();
 
@@ -87,16 +127,25 @@ export function HeaderClient({
     });
   };
 
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(`${href}/`);
+
   return (
     <header
       className={cn(
         "sticky top-0 z-40 border-b transition-colors duration-300 motion-reduce:transition-none",
         scrolled
-          ? "border-border bg-background/90 backdrop-blur-md"
+          ? "border-border/70 bg-background/80 backdrop-blur-lg"
           : "border-transparent bg-background"
       )}
     >
-      <Container className="flex h-16 items-center justify-between gap-2">
+      <Container
+        className={cn(
+          "grid grid-cols-[1fr_auto] items-center gap-2 transition-[height] duration-300 motion-reduce:transition-none lg:grid-cols-[1fr_auto_1fr]",
+          scrolled ? "h-16" : "h-18"
+        )}
+      >
+        {/* شروع: منوی موبایل + لوگو */}
         <div className="flex items-center gap-1 sm:gap-2">
           <Sheet>
             <SheetTrigger asChild>
@@ -109,27 +158,32 @@ export function HeaderClient({
                 <Menu className="size-5" aria-hidden="true" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-4/5 max-w-xs p-0">
-              <SheetHeader className="border-b border-border p-6 text-start">
+            <SheetContent side="right" className="w-4/5 max-w-xs gap-0 p-0">
+              <SheetHeader className="p-6 text-start">
                 <SheetTitle>
                   <span
                     dir="ltr"
                     className="font-heading text-lg font-extrabold tracking-[0.32em] text-dark"
                   >
-                    MONO
+                    {siteConfig.shortName}
                   </span>
                 </SheetTitle>
               </SheetHeader>
+
               <nav
                 aria-label="منوی موبایل"
-                className="flex flex-col gap-1 p-4"
+                className="flex flex-col gap-1 px-4"
               >
                 {navLinks.map((link) => (
                   <SheetClose asChild key={link.href}>
                     <Link
                       href={link.href}
+                      aria-current={isActive(link.href) ? "page" : undefined}
                       className={cn(
-                        "rounded-md px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted",
+                        "rounded-xl px-3 py-3.5 text-lg font-bold transition-colors hover:bg-muted",
+                        isActive(link.href)
+                          ? "bg-primary/10 text-primary"
+                          : "text-foreground",
                         focusRing
                       )}
                     >
@@ -138,6 +192,7 @@ export function HeaderClient({
                   </SheetClose>
                 ))}
               </nav>
+
               <div className="mt-auto border-t border-border p-4">
                 {user === undefined ? null : user ? (
                   <div className="flex flex-col gap-1">
@@ -167,7 +222,7 @@ export function HeaderClient({
                     <Button
                       type="button"
                       variant="ghost"
-                      className="mt-1 w-full justify-start gap-2 px-3 text-destructive hover:text-destructive"
+                      className="mt-1 w-full justify-start gap-3 rounded-xl px-3 text-destructive hover:text-destructive"
                       disabled={loggingOut}
                       onClick={handleLogout}
                     >
@@ -180,7 +235,9 @@ export function HeaderClient({
                     <SheetClose asChild>
                       <Link
                         href="/login"
-                        className={buttonVariants({ className: "w-full" })}
+                        className={buttonVariants({
+                          className: "w-full rounded-full",
+                        })}
                       >
                         <LogIn className="size-4" aria-hidden="true" />
                         ورود
@@ -191,7 +248,7 @@ export function HeaderClient({
                         href="/register"
                         className={buttonVariants({
                           variant: "outline",
-                          className: "w-full",
+                          className: "w-full rounded-full",
                         })}
                       >
                         <UserPlus className="size-4" aria-hidden="true" />
@@ -204,36 +261,25 @@ export function HeaderClient({
             </SheetContent>
           </Sheet>
 
-          <Link
-            href="/"
-            aria-label="مونو اکسسوری، صفحهٔ اصلی"
-            className={cn(
-              "flex items-baseline gap-2 rounded-md px-1",
-              focusRing
-            )}
-          >
-            <span
-              dir="ltr"
-              className="font-heading text-xl font-extrabold tracking-[0.32em] text-dark"
-            >
-              MONO
-            </span>
-            <span className="hidden text-[10px] tracking-[0.18em] text-muted-foreground sm:inline">
-              اکسسوری
-            </span>
-          </Link>
+          <Logo />
         </div>
 
+        {/* وسط: ناوبری دسکتاپ (واقعاً وسط‌چین) */}
         <nav
           aria-label="ناوبری اصلی"
-          className="hidden items-center gap-7 lg:flex"
+          className="hidden items-center gap-9 lg:flex"
         >
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
+              aria-current={isActive(link.href) ? "page" : undefined}
               className={cn(
-                "rounded-md text-sm font-medium text-foreground/80 transition-colors hover:text-primary",
+                "relative rounded-sm py-2 text-sm font-medium transition-colors hover:text-primary",
+                "after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:origin-center after:scale-x-0 after:bg-primary after:transition-transform after:duration-300 hover:after:scale-x-100 motion-reduce:after:transition-none",
+                isActive(link.href)
+                  ? "text-primary after:scale-x-100"
+                  : "text-foreground/75",
                 focusRing
               )}
             >
@@ -242,7 +288,8 @@ export function HeaderClient({
           ))}
         </nav>
 
-        <div className="flex items-center gap-0.5 sm:gap-1">
+        {/* پایان: اکشن‌ها */}
+        <div className="col-start-2 flex items-center justify-self-end gap-0.5 sm:gap-1 lg:col-start-3">
           <SearchDialog />
 
           <Button asChild variant="ghost" size="icon" className="relative">
@@ -259,12 +306,7 @@ export function HeaderClient({
               }
             >
               <Heart className="size-5" aria-hidden="true" />
-              <span
-                aria-hidden="true"
-                className="absolute -top-0.5 -end-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
-              >
-                {countFormatter.format(wishlistCount)}
-              </span>
+              <CountBadge count={wishlistCount} />
             </Link>
           </Button>
 
@@ -278,12 +320,7 @@ export function HeaderClient({
               aria-label={`سبد خرید، ${countFormatter.format(cartCount)} مورد`}
             >
               <ShoppingBag className="size-5" aria-hidden="true" />
-              <span
-                aria-hidden="true"
-                className="absolute -top-0.5 -end-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
-              >
-                {countFormatter.format(cartCount)}
-              </span>
+              <CountBadge count={cartCount} />
             </Button>
           ) : (
             <Button asChild variant="ghost" size="icon" className="relative">
@@ -296,12 +333,7 @@ export function HeaderClient({
                 }
               >
                 <ShoppingBag className="size-5" aria-hidden="true" />
-                <span
-                  aria-hidden="true"
-                  className="absolute -top-0.5 -end-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
-                >
-                  {countFormatter.format(cartCount)}
-                </span>
+                <CountBadge count={cartCount} />
               </Link>
             </Button>
           )}
@@ -314,15 +346,17 @@ export function HeaderClient({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="gap-1.5 px-2"
+                  className="gap-2 rounded-full px-2 sm:ps-1.5 sm:pe-3"
                   aria-label={`حساب کاربری ${user.firstName}`}
                 >
-                  <User className="size-5" aria-hidden="true" />
+                  <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <User className="size-4" aria-hidden="true" />
+                  </span>
                   <span className="hidden text-sm font-medium sm:inline">
                     {user.firstName}
                   </span>
                   <ChevronDown
-                    className="hidden size-4 text-muted-foreground sm:inline"
+                    className="hidden size-3.5 text-muted-foreground sm:inline"
                     aria-hidden="true"
                   />
                 </Button>
@@ -371,10 +405,10 @@ export function HeaderClient({
                 </Link>
               </Button>
               <div className="hidden items-center gap-1 sm:flex">
-                <Button asChild variant="ghost" size="sm">
+                <Button asChild variant="ghost" size="sm" className="rounded-full">
                   <Link href="/login">ورود</Link>
                 </Button>
-                <Button asChild variant="outline" size="sm">
+                <Button asChild size="sm" className="rounded-full px-4">
                   <Link href="/register">ثبت‌نام</Link>
                 </Button>
               </div>

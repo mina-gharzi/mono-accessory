@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { AccountNav } from "@/components/account/account-nav";
 import { Container } from "@/components/container";
 import { requireUser } from "@/server/auth/session";
 
 export const instant = false;
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function AccountLayout({
   children,
