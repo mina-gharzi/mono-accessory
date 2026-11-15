@@ -156,7 +156,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
               onPointerLeave={resetPointerOrigin}
               aria-label={`بزرگ‌نمایی تصویر ${productName}`}
               className={cn(
-                "group relative block aspect-[4/5] w-full cursor-zoom-in overflow-hidden rounded-lg bg-secondary/60",
+                "group relative block aspect-4/5 w-full cursor-zoom-in overflow-hidden rounded-lg bg-secondary/60",
                 focusRing
               )}
             >
@@ -170,13 +170,13 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
                 className="object-cover motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-150"
                 onError={() => markFailed(activeImage.url)}
               />
-              <span className="pointer-events-none absolute bottom-3 end-3 inline-flex items-center gap-1.5 rounded-full bg-background/90 px-3 py-1.5 text-[11px] font-medium text-foreground">
+              <span className="pointer-events-none absolute bottom-3 inset-e-3 inline-flex items-center gap-1.5 rounded-full bg-background/90 px-3 py-1.5 text-[11px] font-medium text-foreground">
                 <Expand className="size-3.5" aria-hidden="true" />
                 بزرگ‌نمایی
               </span>
             </button>
           ) : (
-            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-secondary/60">
+            <div className="relative aspect-4/5 w-full overflow-hidden rounded-lg bg-secondary/60">
               <ProductImagePlaceholder iconClassName="size-14" />
             </div>
           )}
@@ -193,7 +193,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
         <DialogContent
           showCloseButton={false}
           onKeyDown={handleLightboxKeyDown}
-          className="top-0 start-0 flex h-[100dvh] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 bg-dark p-0 text-primary-foreground motion-reduce:animate-none sm:max-w-none rtl:translate-x-0"
+          className="top-0 inset-s-0 flex h-dvh w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 bg-dark p-0 text-primary-foreground motion-reduce:animate-none sm:max-w-none rtl:translate-x-0"
         >
           <DialogTitle className="sr-only">
             گالری تصاویر {productName}
@@ -279,7 +279,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
                   size="icon-lg"
                   aria-label="تصویر قبلی"
                   onClick={showPrevious}
-                  className="absolute start-3 top-1/2 -translate-y-1/2 bg-background/90 text-foreground hover:bg-background"
+                  className="absolute inset-s-3 top-1/2 -translate-y-1/2 bg-background/90 text-foreground hover:bg-background"
                 >
                   <ChevronRight className="size-5" aria-hidden="true" />
                 </Button>
@@ -290,7 +290,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
                   size="icon-lg"
                   aria-label="تصویر بعدی"
                   onClick={showNext}
-                  className="absolute end-3 top-1/2 -translate-y-1/2 bg-background/90 text-foreground hover:bg-background"
+                  className="absolute inset-e-3 top-1/2 -translate-y-1/2 bg-background/90 text-foreground hover:bg-background"
                 >
                   <ChevronLeft className="size-5" aria-hidden="true" />
                 </Button>
