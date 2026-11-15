@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   LayoutDashboard,
@@ -13,7 +12,9 @@ import {
   Store,
   Tags,
   Users,
+  type LucideIcon,
 } from "lucide-react";
+import { useActivePath } from "@/components/layout/nav-link";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -25,7 +26,13 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
-const adminLinks = [
+const adminLinks: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  exact?: boolean;
+  later?: boolean;
+}[] = [
   { href: "/admin", label: "نمای کلی", icon: LayoutDashboard, exact: true },
   { href: "/admin/products", label: "محصولات", icon: Package },
   { href: "/admin/categories", label: "دسته‌بندی‌ها", icon: Tags },
@@ -38,55 +45,55 @@ const adminLinks = [
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
-function isLinkActive(pathname: string, href: string, exact?: boolean) {
-  if (exact) {
-    return pathname === href;
-  }
+function AdminNavItem({
+  link,
+  onNavigate,
+}: {
+  link: (typeof adminLinks)[number];
+  onNavigate?: () => void;
+}) {
+  const active = useActivePath(link.href, link.exact);
+  const Icon = link.icon;
 
-  return pathname === href || pathname.startsWith(`${href}/`);
+  return (
+    <li>
+      <Link
+        href={link.href}
+        onClick={onNavigate}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors motion-reduce:transition-none",
+          active
+            ? "bg-primary text-primary-foreground"
+            : "text-foreground hover:bg-muted",
+          focusRing
+        )}
+      >
+        <Icon className="size-4 shrink-0" aria-hidden="true" />
+        <span>{link.label}</span>
+        {link.later ? (
+          <span
+            className={cn(
+              "ms-auto rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+              active
+                ? "bg-primary-foreground/15 text-primary-foreground"
+                : "bg-muted text-muted-foreground"
+            )}
+          >
+            به‌زودی
+          </span>
+        ) : null}
+      </Link>
+    </li>
+  );
 }
 
 function AdminNavLinks({ onNavigate }: { onNavigate?: () => void }) {
-  const pathname = usePathname();
-
   return (
     <ul className="flex flex-col gap-1">
-      {adminLinks.map((link) => {
-        const active = isLinkActive(pathname, link.href, link.exact);
-        const Icon = link.icon;
-
-        return (
-          <li key={link.href}>
-            <Link
-              href={link.href}
-              onClick={onNavigate}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors motion-reduce:transition-none",
-                active
-                  ? "bg-primary text-primary-foreground"
-                  : "text-foreground hover:bg-muted",
-                focusRing
-              )}
-            >
-              <Icon className="size-4 shrink-0" aria-hidden="true" />
-              <span>{link.label}</span>
-              {link.later ? (
-                <span
-                  className={cn(
-                    "ms-auto rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                    active
-                      ? "bg-primary-foreground/15 text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  به‌زودی
-                </span>
-              ) : null}
-            </Link>
-          </li>
-        );
-      })}
+      {adminLinks.map((link) => (
+        <AdminNavItem key={link.href} link={link} onNavigate={onNavigate} />
+      ))}
     </ul>
   );
 }

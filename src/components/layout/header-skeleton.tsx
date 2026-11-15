@@ -1,10 +1,17 @@
+import Link from "next/link";
 import { Container } from "@/components/container";
+import { mainNavItems } from "@/lib/nav";
 import { siteConfig } from "@/lib/site-config";
+import { cn } from "@/lib/utils";
+
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 /**
  * Static placeholder for the header while session and cart counts load.
- * It must not use client hooks such as usePathname, because it is rendered
- * during prerendering of the app shell.
+ * It renders the same navigation items as the real header but never sets
+ * aria-current or active styles, so the static shell cannot disagree with the
+ * first client render.
  */
 export function HeaderSkeleton() {
   return (
@@ -26,10 +33,23 @@ export function HeaderSkeleton() {
           </span>
         </div>
 
-        <div
-          aria-hidden="true"
-          className="hidden h-4 w-44 animate-pulse rounded bg-muted motion-reduce:animate-none lg:block"
-        />
+        <nav
+          aria-label="ناوبری اصلی"
+          className="hidden items-center gap-9 lg:flex"
+        >
+          {mainNavItems.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                "relative rounded-sm py-2 text-sm font-medium text-foreground/75 transition-colors hover:text-primary",
+                focusRing
+              )}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
 
         <div
           aria-hidden="true"

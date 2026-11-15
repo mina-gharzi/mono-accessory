@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
   ChevronDown,
@@ -18,6 +17,7 @@ import {
 import { logout } from "@/app/(auth)/actions";
 import { useCartSheet } from "@/components/cart/cart-sheet";
 import { Container } from "@/components/container";
+import { NavLink } from "@/components/layout/nav-link";
 import { SearchDialog } from "@/components/layout/search-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -36,15 +36,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { mainNavItems } from "@/lib/nav";
 import { siteConfig } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
-
-const navLinks = [
-  { href: "/shop", label: "فروشگاه" },
-  { href: "/collections", label: "کالکشن‌ها" },
-  { href: "/about", label: "درباره ما" },
-  { href: "/contact", label: "تماس" },
-];
 
 const countFormatter = new Intl.NumberFormat("fa-IR");
 
@@ -108,7 +102,6 @@ export function HeaderClient({
   wishlistCount: number;
 }) {
   const { openCart } = useCartSheet();
-  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [loggingOut, startLogout] = useTransition();
 
@@ -126,9 +119,6 @@ export function HeaderClient({
       void logout();
     });
   };
-
-  const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <header
@@ -174,21 +164,19 @@ export function HeaderClient({
                 aria-label="منوی موبایل"
                 className="flex flex-col gap-1 px-4"
               >
-                {navLinks.map((link) => (
+                {mainNavItems.map((link) => (
                   <SheetClose asChild key={link.href}>
-                    <Link
+                    <NavLink
                       href={link.href}
-                      aria-current={isActive(link.href) ? "page" : undefined}
                       className={cn(
                         "rounded-xl px-3 py-3.5 text-lg font-bold transition-colors hover:bg-muted",
-                        isActive(link.href)
-                          ? "bg-primary/10 text-primary"
-                          : "text-foreground",
                         focusRing
                       )}
+                      activeClassName="bg-primary/10 text-primary"
+                      inactiveClassName="text-foreground"
                     >
                       {link.label}
-                    </Link>
+                    </NavLink>
                   </SheetClose>
                 ))}
               </nav>
@@ -269,22 +257,20 @@ export function HeaderClient({
           aria-label="ناوبری اصلی"
           className="hidden items-center gap-9 lg:flex"
         >
-          {navLinks.map((link) => (
-            <Link
+          {mainNavItems.map((link) => (
+            <NavLink
               key={link.href}
               href={link.href}
-              aria-current={isActive(link.href) ? "page" : undefined}
               className={cn(
                 "relative rounded-sm py-2 text-sm font-medium transition-colors hover:text-primary",
                 "after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:origin-center after:scale-x-0 after:bg-primary after:transition-transform after:duration-300 hover:after:scale-x-100 motion-reduce:after:transition-none",
-                isActive(link.href)
-                  ? "text-primary after:scale-x-100"
-                  : "text-foreground/75",
                 focusRing
               )}
+              activeClassName="text-primary after:scale-x-100"
+              inactiveClassName="text-foreground/75"
             >
               {link.label}
-            </Link>
+            </NavLink>
           ))}
         </nav>
 
