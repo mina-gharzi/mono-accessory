@@ -35,5 +35,5 @@ Multi-vendor, wallet, loyalty, mobile app, real payment, OTP, advanced inventory
 - [x] 12a Admin orders and customers
 - [x] 12b Admin dashboard
 - [x] 13 Static pages, 404, SEO
-- [ ] 14 Tests, README, env docs
+- [x] 14 Tests, README, env docs
 - [ ] 15 Phase 2: discounts, reviews admin, stats

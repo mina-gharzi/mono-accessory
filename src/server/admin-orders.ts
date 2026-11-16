@@ -5,7 +5,11 @@ import type {
   OrderStatus,
   PaymentStatus,
 } from "@/generated/prisma/client";
-import { ORDER_STATUS_LABELS, ORDER_STATUS_VALUES } from "@/lib/order-status";
+import {
+  getAllowedOrderStatuses,
+  ORDER_STATUS_LABELS,
+  ORDER_STATUS_VALUES,
+} from "@/lib/order-status";
 import { requireAdmin } from "./auth/session";
 import { prisma } from "./db";
 import { normalizeSearchTerm, toEnglishDigits } from "./products";
@@ -43,20 +47,7 @@ const ORDER_NOT_FOUND = "سفارش پیدا نشد.";
 const CONCURRENT_CHANGE =
   "وضعیت سفارش هم‌زمان توسط کاربر دیگری تغییر کرده است. صفحه را دوباره بارگذاری کنید.";
 
-const ALLOWED_ORDER_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
-  PENDING: ["CANCELLED"],
-  PAID: ["PROCESSING", "CANCELLED"],
-  PROCESSING: ["SHIPPED", "CANCELLED"],
-  SHIPPED: ["DELIVERED"],
-  DELIVERED: [],
-  CANCELLED: [],
-};
-
-export function getAllowedOrderStatuses(
-  status: OrderStatus
-): readonly OrderStatus[] {
-  return ALLOWED_ORDER_TRANSITIONS[status];
-}
+export { getAllowedOrderStatuses } from "@/lib/order-status";
 
 /* -------------------------------------------------------------------------- */
 /* Query params                                                               */
@@ -518,7 +509,7 @@ export async function changeOrderStatus(
         };
       }
 
-      const allowed = ALLOWED_ORDER_TRANSITIONS[order.status];
+      const allowed = getAllowedOrderStatuses(order.status);
 
       if (!allowed.includes(status)) {
         return {

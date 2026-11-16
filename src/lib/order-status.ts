@@ -36,3 +36,25 @@ export const ORDER_STATUS_STEPS = [
   "SHIPPED",
   "DELIVERED",
 ] as const satisfies readonly OrderStatus[];
+
+/**
+ * Statuses an admin may move an order to, keyed by the current status.
+ * Terminal states (DELIVERED, CANCELLED) have no outgoing transitions.
+ */
+export const ORDER_STATUS_TRANSITIONS: Record<
+  OrderStatus,
+  readonly OrderStatus[]
+> = {
+  PENDING: ["CANCELLED"],
+  PAID: ["PROCESSING", "CANCELLED"],
+  PROCESSING: ["SHIPPED", "CANCELLED"],
+  SHIPPED: ["DELIVERED"],
+  DELIVERED: [],
+  CANCELLED: [],
+};
+
+export function getAllowedOrderStatuses(
+  status: OrderStatus
+): readonly OrderStatus[] {
+  return ORDER_STATUS_TRANSITIONS[status];
+}
