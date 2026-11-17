@@ -13,7 +13,7 @@ Mobile number + password. Custom JWT with jose, httpOnly secure cookie, bcryptjs
 ## Features (MVP)
 Pages: home (hero, collections, new, bestsellers, recommended, offers, footer), shop (grid, categories, filter, sort, search, price and stock), product detail (gallery with zoom, color/model variants, stock, description, specs, similar, add to cart, wishlist), about, contact, FAQ, terms, shipping and returns, collection pages, custom 404.
 User: register/login, cart, wishlist, checkout, order tracking, order history and details.
-Cart/order: add/remove/change qty, server-side totals, fixed shipping cost, free shipping above a configurable threshold, mock payment behind an interface so a real gateway can replace it. Variant stock is decreased inside a Prisma transaction on order creation; reject if insufficient.
+Cart/order: add/remove/change qty, server-side totals, fixed shipping cost, free shipping above a configurable threshold, discount codes with minimum order, expiry and usage limits, mock payment behind an interface so a real gateway can replace it. Variant stock is decreased inside a Prisma transaction on order creation; reject if insufficient.
 Admin: products (with images, price, specs), categories, variants and stock, orders and status, customers, discounts, reviews, sales dashboard. All admin authorization on the server.
 
 ## Out of scope
@@ -36,4 +36,5 @@ Multi-vendor, wallet, loyalty, mobile app, real payment, OTP, advanced inventory
 - [x] 12b Admin dashboard
 - [x] 13 Static pages, 404, SEO
 - [x] 14 Tests, README, env docs
-- [ ] 15 Phase 2: discounts, reviews admin, stats
+- [x] 15a Phase 2: discount codes (checkout, usage tracking, admin management)
+- [ ] 15b Phase 2: customer review submission and admin moderation

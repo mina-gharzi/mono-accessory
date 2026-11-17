@@ -275,7 +275,14 @@ export default async function OrderPage({
               </div>
               {order.discountAmount > 0 ? (
                 <div className="flex items-center justify-between gap-3">
-                  <dt className="text-muted-foreground">تخفیف</dt>
+                  <dt className="text-muted-foreground">
+                    تخفیف
+                    {order.discountCode ? (
+                      <span className="ms-1 text-[11px]" dir="ltr">
+                        ({order.discountCode})
+                      </span>
+                    ) : null}
+                  </dt>
                   <dd className="font-medium text-foreground">
                     {formatPrice(order.discountAmount)}
                   </dd>

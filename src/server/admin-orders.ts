@@ -297,6 +297,7 @@ export type AdminOrderDetail = {
   subtotal: number;
   shippingCost: number;
   discountAmount: number;
+  discountCode: string | null;
   total: number;
   recipientName: string;
   mobile: string;
@@ -318,6 +319,7 @@ const adminOrderDetailSelect = {
   subtotal: true,
   shippingCost: true,
   discountAmount: true,
+  discountCode: true,
   total: true,
   recipientName: true,
   mobile: true,
@@ -368,6 +370,7 @@ function toAdminOrderDetail(row: AdminOrderDetailRow): AdminOrderDetail {
     subtotal: row.subtotal,
     shippingCost: row.shippingCost,
     discountAmount: row.discountAmount,
+    discountCode: row.discountCode,
     total: row.total,
     recipientName: row.recipientName,
     mobile: row.mobile,
@@ -436,6 +439,7 @@ const statusChangeSelect = {
   userId: true,
   status: true,
   paymentStatus: true,
+  discountCode: true,
   items: {
     select: {
       variantId: true,
@@ -539,6 +543,13 @@ export async function changeOrderStatus(
           await tx.productVariant.update({
             where: { id: item.variantId },
             data: { stock: { increment: item.quantity } },
+          });
+        }
+
+        if (order.discountCode) {
+          await tx.discount.updateMany({
+            where: { code: order.discountCode, usedCount: { gt: 0 } },
+            data: { usedCount: { decrement: 1 } },
           });
         }
       }

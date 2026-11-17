@@ -11,12 +11,14 @@ export type ShippingSettings = {
 
 export type CalculateTotalsInput = {
   subtotal: number;
+  discountAmount?: number;
   shippingCost: number;
   freeShippingThreshold: number;
 };
 
 export type CartTotals = {
   subtotal: number;
+  discountAmount: number;
   shippingCost: number;
   total: number;
   amountToFreeShipping: number;
@@ -28,20 +30,26 @@ function safeAmount(value: number): number {
 
 export function calculateTotals({
   subtotal,
+  discountAmount = 0,
   shippingCost,
   freeShippingThreshold,
 }: CalculateTotalsInput): CartTotals {
   const safeSubtotal = safeAmount(subtotal);
+  const safeDiscount = Math.min(safeAmount(discountAmount), safeSubtotal);
+  const discountedSubtotal = safeSubtotal - safeDiscount;
   const safeShippingCost = safeAmount(shippingCost);
   const safeThreshold = safeAmount(freeShippingThreshold);
   const shipping =
-    safeSubtotal === 0 || safeSubtotal >= safeThreshold ? 0 : safeShippingCost;
+    discountedSubtotal === 0 || discountedSubtotal >= safeThreshold
+      ? 0
+      : safeShippingCost;
 
   return {
     subtotal: safeSubtotal,
+    discountAmount: safeDiscount,
     shippingCost: shipping,
-    total: safeSubtotal + shipping,
-    amountToFreeShipping: Math.max(0, safeThreshold - safeSubtotal),
+    total: discountedSubtotal + shipping,
+    amountToFreeShipping: Math.max(0, safeThreshold - discountedSubtotal),
   };
 }
 

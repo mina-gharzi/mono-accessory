@@ -18,6 +18,7 @@ vi.mock("@/server/auth/session", () => ({
 }));
 
 import { changeOrderStatus } from "@/server/admin-orders";
+import { listAdminDiscounts } from "@/server/discounts";
 import {
   cancelPendingOrder,
   markOrderPaid,
@@ -37,6 +38,7 @@ const shipping: ShippingInput = {
 const createdUserIds: string[] = [];
 const createdCategoryIds: string[] = [];
 const createdProductIds: string[] = [];
+const createdDiscountIds: string[] = [];
 
 function uniqueSuffix(): string {
   return `${Date.now().toString(36)}${randomInt(0, 1_000_000)}`;
@@ -125,6 +127,34 @@ async function readSoldCount(productId: string): Promise<number> {
   return product.soldCount;
 }
 
+async function createDiscount(options: {
+  usageLimit: number | null;
+  value: number;
+}) {
+  const code = `TEST${uniqueSuffix()}`.toUpperCase().slice(0, 20);
+  const discount = await prisma.discount.create({
+    data: {
+      code,
+      type: "FIXED",
+      value: options.value,
+      usageLimit: options.usageLimit,
+    },
+  });
+
+  createdDiscountIds.push(discount.id);
+
+  return discount;
+}
+
+async function readDiscountUsedCount(discountId: string): Promise<number> {
+  const discount = await prisma.discount.findUniqueOrThrow({
+    where: { id: discountId },
+    select: { usedCount: true },
+  });
+
+  return discount.usedCount;
+}
+
 afterEach(async () => {
   if (createdUserIds.length > 0) {
     await prisma.order.deleteMany({
@@ -145,9 +175,16 @@ afterEach(async () => {
     });
   }
 
+  if (createdDiscountIds.length > 0) {
+    await prisma.discount.deleteMany({
+      where: { id: { in: createdDiscountIds } },
+    });
+  }
+
   createdUserIds.length = 0;
   createdCategoryIds.length = 0;
   createdProductIds.length = 0;
+  createdDiscountIds.length = 0;
 });
 
 afterAll(async () => {
@@ -317,5 +354,60 @@ describe("cancelling an order", () => {
     const cancelledAgain = await changeOrderStatus(secondOrder.id, "CANCELLED");
     expect(cancelledAgain.ok).toBe(true);
     expect(await readStock(variant.id)).toBe(10);
+  });
+});
+
+describe("discount usage", () => {
+  it("enforces the usage limit atomically and restores it on cancellation", async () => {
+    const user = await createUser();
+    const { variant } = await createProduct({ price: 100_000, stock: 10 });
+    const discount = await createDiscount({ usageLimit: 1, value: 50_000 });
+
+    await putInCart(user.id, variant.id, 1);
+
+    const first = await placeOrder(user.id, shipping, discount.code);
+
+    expect(first.ok).toBe(true);
+
+    if (!first.ok) return;
+
+    const order = await prisma.order.findUniqueOrThrow({
+      where: { orderNumber: first.orderNumber },
+      select: {
+        id: true,
+        discountCode: true,
+        discountAmount: true,
+        total: true,
+      },
+    });
+
+    expect(order.discountCode).toBe(discount.code);
+    expect(order.discountAmount).toBe(50_000);
+    expect(order.total).toBe(110_000);
+    expect(await readStock(variant.id)).toBe(9);
+    expect(await readDiscountUsedCount(discount.id)).toBe(1);
+
+    const listed = await listAdminDiscounts({ q: discount.code, page: 1 });
+    expect(listed.items).toHaveLength(1);
+    expect(listed.items[0]?.usedCount).toBe(1);
+    expect(listed.items[0]?.orderCount).toBe(1);
+
+    // The cart still holds the item. The second order must fail on the usage
+    // limit and roll back the stock decrement it already performed.
+    const second = await placeOrder(user.id, shipping, discount.code);
+
+    expect(second.ok).toBe(false);
+    expect(await readStock(variant.id)).toBe(9);
+    expect(await prisma.order.count({ where: { userId: user.id } })).toBe(1);
+    expect(await readDiscountUsedCount(discount.id)).toBe(1);
+
+    const cancelled = await cancelPendingOrder(order.id, user.id);
+    expect(cancelled.ok).toBe(true);
+    expect(await readStock(variant.id)).toBe(10);
+    expect(await readDiscountUsedCount(discount.id)).toBe(0);
+
+    const replay = await cancelPendingOrder(order.id, user.id);
+    expect(replay.ok).toBe(true);
+    expect(await readDiscountUsedCount(discount.id)).toBe(0);
   });
 });

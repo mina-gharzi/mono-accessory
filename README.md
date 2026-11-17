@@ -23,11 +23,12 @@ and image-storage providers.
 - **Accounts** — mobile number and password authentication, cart, wishlist,
   checkout, order history and order details.
 - **Orders** — add/remove/change quantity, server-side totals, fixed shipping
-  cost with a free-shipping threshold stored in settings, mock payment behind
-  a provider interface, and variant stock decremented inside a transaction.
-- **Admin** — categories, products with images, variants and stock, orders and
-  status transitions, customers and a sales dashboard. All authorization is
-  enforced on the server.
+  cost with a free-shipping threshold stored in settings, discount codes applied
+  at checkout, mock payment behind a provider interface, and variant stock
+  decremented inside a transaction.
+- **Admin** — categories, products with images, variants and stock, discount
+  codes with usage limits and expiry, orders and status transitions, customers
+  and a sales dashboard. All authorization is enforced on the server.
 - **Experience** — Persian RTL layout, local Pinar font, loading, empty and
   error states on every list, reduced-motion support and SEO metadata,
   sitemap and robots.
@@ -78,10 +79,11 @@ tests/          unit, integration and e2e suites
   `public/uploads/<year>-<month>/`. A cloud driver can be added by implementing
   the interface and returning it from `createImageStorage`.
 - **Stock and transactions.** `placeOrder` runs in a single Prisma transaction:
-  it re-reads cart lines, validates variant stock, decrements stock, creates the
-  order and clears the cart. Insufficient stock rolls the whole transaction
-  back. Paid callbacks are idempotent, and cancelling restores stock exactly
-  once.
+  it re-reads cart lines, validates variant stock, decrements stock, revalidates
+  any discount code, increments its usage counter with a conditional update,
+  creates the order and clears the cart. Insufficient stock or an exhausted
+  discount rolls the whole transaction back. Paid callbacks are idempotent, and
+  cancelling restores stock and discount usage exactly once.
 - **Streaming pages.** Admin and account pages are a synchronous page shell
   (heading, actions) plus an async child that awaits data and `searchParams`
   inside `<Suspense>` with a skeleton fallback. Data is never awaited at a
@@ -177,13 +179,14 @@ Open `http://localhost:3000`.
 The suite is intentionally small and covers the parts where bugs are expensive.
 
 - **Unit** (`tests/unit`) — mobile number normalization, password rules and the
-  safe redirect helper, `calculateTotals`, order status transitions and shop
-  search/parameter parsing. No database is used.
+  safe redirect helper, `calculateTotals`, discount code normalization and
+  calculation, order status transitions and shop search/parameter parsing. No
+  database is used.
 - **Integration** (`tests/integration`) — real Prisma against
   `TEST_DATABASE_URL`: server-computed totals with stock decrement and rollback,
-  idempotent payment callbacks with cross-user rejection, and stock restoration
-  on customer and admin cancellation. Each test creates uniquely named fixtures
-  and removes them afterwards.
+  idempotent payment callbacks with cross-user rejection, stock restoration on
+  customer and admin cancellation, and atomic discount usage limits. Each test
+  creates uniquely named fixtures and removes them afterwards.
 - **E2E** (`tests/e2e`) — Chromium only, run against a production build:
   a customer purchase from registration to a paid order (cart empty, stock
   reduced), access control for anonymous and customer users, and an admin
@@ -233,11 +236,8 @@ scenario signs in with the seeded account.
 - **Abandoned orders.** A `PENDING` order reserves stock until it is paid or
   cancelled. A scheduled job that expires unpaid orders and releases stock is
   planned.
-- **Discounts.** The schema and order totals support discounts, but coupon
-  creation and redemption are not exposed in the storefront yet.
 - **Reviews.** Approved reviews are displayed, but customers cannot submit new
   reviews and admins have no moderation screen yet.
 - **Notifications.** There are no email or SMS notifications for orders.
-- **Roadmap** — real gateway, OTP verification, discounts and coupons, review
-  submission and moderation, order-expiry job, cloud image storage, and
-  production monitoring.
+- **Roadmap** — real gateway, OTP verification, review submission and
+  moderation, order-expiry job, cloud image storage, and production monitoring.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useId, useState } from "react";
+import type { ReactNode } from "react";
 import {
   placeOrderAction,
   type CheckoutState,
@@ -21,13 +22,18 @@ import { cn } from "@/lib/utils";
 
 type ShippingFormProps = {
   defaults: ShippingInput;
+  summary: ReactNode;
   className?: string;
 };
 
 const textareaClass =
   "flex min-h-24 w-full rounded-md border border-input bg-card px-3.5 py-3 text-base text-foreground transition-colors outline-none placeholder:text-muted-foreground/80 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 md:text-sm";
 
-export function ShippingForm({ defaults, className }: ShippingFormProps) {
+export function ShippingForm({
+  defaults,
+  summary,
+  className,
+}: ShippingFormProps) {
   const initialState: CheckoutState = {
     status: "idle",
     message: null,
@@ -55,19 +61,33 @@ export function ShippingForm({ defaults, className }: ShippingFormProps) {
   const postalCodeError = state.fieldErrors.postalCode;
 
   return (
-    <form action={formAction} className={cn("flex flex-col gap-5", className)} noValidate>
-      <div aria-live="polite" aria-atomic="true">
-        {state.message ? (
-          <p
-            role="alert"
-            className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm leading-6 text-destructive"
-          >
-            {state.message}
-          </p>
-        ) : null}
-      </div>
+    <form
+      action={formAction}
+      className={cn(
+        "grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-10",
+        className
+      )}
+      noValidate
+    >
+      <section
+        aria-label="اطلاعات ارسال"
+        className="rounded-lg border border-border bg-card p-5 sm:p-6"
+      >
+        <h2 className="mb-5 font-heading text-lg font-bold text-dark">
+          اطلاعات ارسال
+        </h2>
+        <div aria-live="polite" aria-atomic="true">
+          {state.message ? (
+            <p
+              role="alert"
+              className="mb-5 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm leading-6 text-destructive"
+            >
+              {state.message}
+            </p>
+          ) : null}
+        </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor={recipientNameId}>نام گیرنده</Label>
           <Input
@@ -224,11 +244,14 @@ export function ShippingForm({ defaults, className }: ShippingFormProps) {
             </p>
           )}
         </div>
-      </div>
+        </div>
 
-      <Button type="submit" size="lg" disabled={pending}>
-        {pending ? "در حال ثبت سفارش..." : "ثبت سفارش و پرداخت"}
-      </Button>
+        <Button type="submit" size="lg" disabled={pending} className="mt-5">
+          {pending ? "در حال ثبت سفارش..." : "ثبت سفارش و پرداخت"}
+        </Button>
+      </section>
+
+      {summary}
     </form>
   );
 }

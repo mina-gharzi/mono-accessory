@@ -7,6 +7,10 @@ import { IRAN_PROVINCES, isIranProvince } from "@/lib/iran-provinces";
 import { ORDER_STATUS_VALUES } from "@/lib/order-status";
 import { mobileSchema, toEnglishDigits } from "./auth/mobile";
 import { prisma } from "./db";
+import {
+  DISCOUNT_USAGE_LIMIT,
+  findDiscountForSubtotal,
+} from "./discounts";
 import { calculateTotals, resolveShippingSettings } from "./pricing";
 
 export type ShippingInput = {
@@ -52,6 +56,7 @@ export type OrderDetail = {
   subtotal: number;
   shippingCost: number;
   discountAmount: number;
+  discountCode: string | null;
   total: number;
   recipientName: string;
   mobile: string;
@@ -171,6 +176,7 @@ function toOrderDetail(order: OrderRow): OrderDetail {
     subtotal: order.subtotal,
     shippingCost: order.shippingCost,
     discountAmount: order.discountAmount,
+    discountCode: order.discountCode,
     total: order.total,
     recipientName: order.recipientName,
     mobile: order.mobile,
@@ -254,10 +260,18 @@ function isOrderNumberCollision(error: unknown): boolean {
  */
 export async function placeOrder(
   userId: string,
-  shippingInput: ShippingInput
+  shippingInput: ShippingInput,
+  discountCode?: string | null
 ): Promise<PlaceOrderResult> {
   const parsedUser = idSchema.safeParse(userId);
   const parsedShipping = shippingInputSchema.safeParse(shippingInput);
+  const parsedCode = z
+    .string()
+    .trim()
+    .max(40)
+    .optional()
+    .catch(undefined)
+    .safeParse(discountCode ?? "");
 
   if (!parsedUser.success) {
     return { ok: false, message: INVALID_REQUEST, fieldErrors: {} };
@@ -271,10 +285,13 @@ export async function placeOrder(
     };
   }
 
+  const code =
+    parsedCode.success && parsedCode.data ? parsedCode.data : null;
+
   for (let attempt = 0; attempt < ORDER_NUMBER_ATTEMPTS; attempt += 1) {
     try {
       return await prisma.$transaction((tx) =>
-        createPendingOrder(tx, parsedUser.data, parsedShipping.data)
+        createPendingOrder(tx, parsedUser.data, parsedShipping.data, code)
       );
     } catch (error) {
       if (error instanceof PlaceOrderError) {
@@ -295,7 +312,8 @@ export async function placeOrder(
 async function createPendingOrder(
   tx: Prisma.TransactionClient,
   userId: string,
-  shipping: z.output<typeof shippingInputSchema>
+  shipping: z.output<typeof shippingInputSchema>,
+  discountCode: string | null
 ): Promise<PlaceOrderResult> {
   const cart = await tx.cart.findUnique({
     where: { userId },
@@ -364,7 +382,42 @@ async function createPendingOrder(
     subtotal += product.price * item.quantity;
   }
 
-  const totals = calculateTotals({ subtotal, ...settings });
+  let discountAmount = 0;
+  let appliedCode: string | null = null;
+
+  if (discountCode) {
+    const validation = await findDiscountForSubtotal(tx, discountCode, subtotal);
+
+    if (!validation.ok) {
+      throw new PlaceOrderError(validation.message);
+    }
+
+    const discount = validation.discount;
+    const limitWhere =
+      discount.usageLimit === null
+        ? { id: discount.id, usageLimit: null }
+        : {
+            id: discount.id,
+            usageLimit: discount.usageLimit,
+            usedCount: { lt: discount.usageLimit },
+          };
+
+    // The conditional update is the real limit check: concurrent orders that
+    // read the same usedCount cannot both increment it past usageLimit.
+    const incremented = await tx.discount.updateMany({
+      where: limitWhere,
+      data: { usedCount: { increment: 1 } },
+    });
+
+    if (incremented.count === 0) {
+      throw new PlaceOrderError(DISCOUNT_USAGE_LIMIT);
+    }
+
+    discountAmount = discount.amount;
+    appliedCode = discount.code;
+  }
+
+  const totals = calculateTotals({ subtotal, discountAmount, ...settings });
   const orderNumber = generateOrderNumber();
   const order = await tx.order.create({
     data: {
@@ -374,7 +427,8 @@ async function createPendingOrder(
       paymentStatus: "PENDING",
       subtotal: totals.subtotal,
       shippingCost: totals.shippingCost,
-      discountAmount: 0,
+      discountAmount: totals.discountAmount,
+      discountCode: appliedCode,
       total: totals.total,
       ...shipping,
       items: {
@@ -499,6 +553,7 @@ export async function cancelPendingOrder(
         id: true,
         status: true,
         paymentStatus: true,
+        discountCode: true,
         items: {
           select: { variantId: true, quantity: true },
         },
@@ -543,6 +598,13 @@ export async function cancelPendingOrder(
       await tx.productVariant.update({
         where: { id: item.variantId },
         data: { stock: { increment: item.quantity } },
+      });
+    }
+
+    if (order.discountCode) {
+      await tx.discount.updateMany({
+        where: { code: order.discountCode, usedCount: { gt: 0 } },
+        data: { usedCount: { decrement: 1 } },
       });
     }
 
