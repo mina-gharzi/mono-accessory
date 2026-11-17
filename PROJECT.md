@@ -37,4 +37,4 @@ Multi-vendor, wallet, loyalty, mobile app, real payment, OTP, advanced inventory
 - [x] 13 Static pages, 404, SEO
 - [x] 14 Tests, README, env docs
 - [x] 15a Phase 2: discount codes (checkout, usage tracking, admin management)
-- [ ] 15b Phase 2: customer review submission and admin moderation
+- [x] 15b Phase 2: customer review submission and admin moderation

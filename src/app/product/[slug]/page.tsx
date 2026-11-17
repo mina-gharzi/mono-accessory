@@ -3,31 +3,35 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
-import { ChevronLeft, MessageSquare } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { Container } from "@/components/container";
 import { EmptyState } from "@/components/empty-state";
 import { Reveal } from "@/components/motion/reveal";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { RatingStars } from "@/components/product/rating-stars";
+import { ReviewsPanel } from "@/components/product/reviews-panel";
 import { VariantPurchasePanel } from "@/components/product/variant-purchase-panel";
 import { SectionHeading } from "@/components/section-heading";
 import { ProductGrid } from "@/components/shop/product-grid";
 import { ProductDetailSkeleton } from "@/components/skeletons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  formatDate,
   formatNumber,
   formatPrice,
   formatRating,
 } from "@/lib/format";
+import { getSession } from "@/server/auth/session";
 import {
   getProductBySlug,
   getSimilarProducts,
   pickVariant,
   type ProductDetail,
-  type ProductReview,
   type ProductSpec,
 } from "@/server/products";
+import {
+  canUserReview,
+  type ReviewEligibility,
+} from "@/server/reviews";
 
 type ProductPageProps = PageProps<"/product/[slug]">;
 
@@ -89,7 +93,10 @@ async function ProductContent({ params, searchParams }: ProductPageProps) {
   await connection();
 
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const [product, session] = await Promise.all([
+    getProductBySlug(slug),
+    getSession(),
+  ]);
 
   if (!product) {
     notFound();
@@ -100,7 +107,10 @@ async function ProductContent({ params, searchParams }: ProductPageProps) {
     product.variants,
     rawSearchParams.variant
   );
-  const similarProducts = await getSimilarProducts(product.id, 4);
+  const [eligibility, similarProducts] = await Promise.all([
+    canUserReview(session?.id ?? null, product.id),
+    getSimilarProducts(product.id, 4),
+  ]);
 
   return (
     <div className="flex flex-1 flex-col pb-24 md:pb-0">
@@ -125,7 +135,11 @@ async function ProductContent({ params, searchParams }: ProductPageProps) {
           </div>
         </div>
 
-        <ProductTabs product={product} />
+        <ProductTabs
+          product={product}
+          eligibility={eligibility}
+          isLoggedIn={Boolean(session)}
+        />
 
         {similarProducts.length > 0 ? (
           <section
@@ -237,7 +251,15 @@ function ProductSummary({ product }: { product: ProductDetail }) {
   );
 }
 
-function ProductTabs({ product }: { product: ProductDetail }) {
+function ProductTabs({
+  product,
+  eligibility,
+  isLoggedIn,
+}: {
+  product: ProductDetail;
+  eligibility: ReviewEligibility;
+  isLoggedIn: boolean;
+}) {
   return (
     <section aria-label="جزئیات محصول">
       <Tabs defaultValue="description" className="gap-0">
@@ -267,7 +289,15 @@ function ProductTabs({ product }: { product: ProductDetail }) {
         </TabsContent>
 
         <TabsContent value="reviews" className="pt-6">
-          <ReviewsList reviews={product.reviews} />
+          <ReviewsPanel
+            productId={product.id}
+            reviews={product.reviews}
+            eligibility={eligibility}
+            isLoggedIn={isLoggedIn}
+            loginHref={`/login?next=${encodeURIComponent(
+              `/product/${product.slug}`
+            )}`}
+          />
         </TabsContent>
       </Tabs>
     </section>
@@ -312,51 +342,6 @@ function SpecsTable({
         </tbody>
       </table>
     </div>
-  );
-}
-
-function ReviewsList({ reviews }: { reviews: ProductReview[] }) {
-  if (reviews.length === 0) {
-    return (
-      <EmptyState
-        icon={<MessageSquare className="size-5" />}
-        title="هنوز دیدگاهی ثبت نشده است"
-        description="پس از خرید، می‌توانید دیدگاه خود را دربارهٔ این محصول ثبت کنید."
-      />
-    );
-  }
-
-  return (
-    <ul className="flex flex-col gap-4">
-      {reviews.map((review) => (
-        <li
-          key={review.id}
-          className="rounded-lg border border-border bg-card p-5"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-bold text-foreground">
-                {review.authorName}
-              </span>
-              <RatingStars rating={review.rating} starClassName="size-3.5" />
-            </div>
-
-            <time
-              dateTime={review.createdAt.toISOString()}
-              className="text-xs text-muted-foreground"
-            >
-              {formatDate(review.createdAt)}
-            </time>
-          </div>
-
-          {review.comment ? (
-            <p className="mt-3 text-sm leading-7 text-foreground/80">
-              {review.comment}
-            </p>
-          ) : null}
-        </li>
-      ))}
-    </ul>
   );
 }
 

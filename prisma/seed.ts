@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { existsSync, readdirSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { hash } from "bcryptjs";
 import { prisma } from "../src/server/db";
@@ -535,6 +536,77 @@ async function upsertCategory(category: SeedCategory) {
   return prisma.category.create({ data: category });
 }
 
+// Demo reviews are fabricated data for local UI previews only. They are
+// created only when SEED_DEMO_REVIEWS === "true" and must never be enabled
+// for production data.
+async function seedDemoReviews(productIds: Map<string, string>) {
+  if (process.env.SEED_DEMO_REVIEWS !== "true") {
+    return;
+  }
+
+  const demoPasswordHash = await hash(randomUUID(), 12);
+  const demoReviews = [
+    {
+      mobile: "09120000001",
+      name: "سارا محمدی",
+      productSlug: "necklace-steel-gold",
+      rating: 5,
+      comment: "بعد از چند ماه استفاده هنوز رنگش تغییر نکرده و خیلی خوش‌ساخته است.",
+    },
+    {
+      mobile: "09120000002",
+      name: "نگار رضایی",
+      productSlug: "ring-steel-minimal",
+      rating: 4,
+      comment: "اندازه‌اش دقیقاً مطابق راهنما بود و برای استفادهٔ روزمره سبک است.",
+    },
+    {
+      mobile: "09120000003",
+      name: "مریم کاظمی",
+      productSlug: "scarf-cotton",
+      rating: 5,
+      comment: "جنس پارچه نرم و خنک است و رنگش با عکس محصول تفاوتی ندارد.",
+    },
+  ];
+
+  for (const review of demoReviews) {
+    const productId = productIds.get(review.productSlug);
+
+    if (!productId) {
+      continue;
+    }
+
+    const user = await prisma.user.upsert({
+      where: { mobile: review.mobile },
+      update: { name: review.name },
+      create: {
+        mobile: review.mobile,
+        name: review.name,
+        passwordHash: demoPasswordHash,
+        mobileVerifiedAt: new Date(),
+      },
+    });
+
+    await prisma.review.upsert({
+      where: {
+        userId_productId: { userId: user.id, productId },
+      },
+      update: {
+        rating: review.rating,
+        comment: review.comment,
+        status: "APPROVED",
+      },
+      create: {
+        userId: user.id,
+        productId,
+        rating: review.rating,
+        comment: review.comment,
+        status: "APPROVED",
+      },
+    });
+  }
+}
+
 async function main() {
   const adminMobile = process.env.ADMIN_MOBILE;
   const adminPassword = process.env.ADMIN_PASSWORD;
@@ -686,6 +758,8 @@ async function main() {
       data: { products: { set: connect } },
     });
   }
+
+  await seedDemoReviews(productIds);
 
   console.log("Seed completed successfully.");
 }

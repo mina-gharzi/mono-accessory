@@ -21,14 +21,16 @@ and image-storage providers.
   stock state, specs and similar products, collection pages, about, contact,
   FAQ, terms, shipping and returns, and a custom 404.
 - **Accounts** — mobile number and password authentication, cart, wishlist,
-  checkout, order history and order details.
+  checkout, order history and order details, and reviews that customers can
+  submit after a delivered order and that admins moderate before publication.
 - **Orders** — add/remove/change quantity, server-side totals, fixed shipping
   cost with a free-shipping threshold stored in settings, discount codes applied
   at checkout, mock payment behind a provider interface, and variant stock
   decremented inside a transaction.
 - **Admin** — categories, products with images, variants and stock, discount
-  codes with usage limits and expiry, orders and status transitions, customers
-  and a sales dashboard. All authorization is enforced on the server.
+  codes with usage limits and expiry, orders and status transitions, customers,
+  review moderation with approval, rejection and deletion, and a sales
+  dashboard. All authorization is enforced on the server.
 - **Experience** — Persian RTL layout, local Pinar font, loading, empty and
   error states on every list, reduced-motion support and SEO metadata,
   sitemap and robots.
@@ -116,6 +118,7 @@ Fill in `.env` as described below.
 | `TEST_DATABASE_URL` | Tests | Disposable database for integration and E2E tests. Must differ from `DATABASE_URL`, and its host or database name must contain `test`. |
 | `ADMIN_MOBILE` | Seed | Mobile number of the admin account created by the seed. |
 | `ADMIN_PASSWORD` | Seed | Password of the seeded admin account. |
+| `SEED_DEMO_REVIEWS` | No | When `true`, the seed also creates clearly marked demo reviews and demo customer accounts. Keep unset or `false` for real data. |
 | `NEXT_PUBLIC_SITE_URL` | Yes | Public site URL used for canonical URLs, Open Graph metadata, sitemap and robots. |
 | `AUTH_SECRET` | Yes | Secret used to sign session JWTs. At least 32 characters. |
 | `PAYMENT_PROVIDER` | No | Payment provider id. Only `mock` is implemented; defaults to `mock`. |
@@ -146,6 +149,11 @@ Fill in `.env` as described below.
 
    The admin account is created from `ADMIN_MOBILE` and `ADMIN_PASSWORD`. Sign
    in with those credentials at `/login` to reach `/admin`.
+
+   The seed never fabricates reviews by default. For local UI previews you can
+   set `SEED_DEMO_REVIEWS=true`; it then creates a few clearly marked demo
+   reviews and demo customer accounts. Never enable this flag for production
+   data.
 
 ### Run
 
@@ -180,13 +188,14 @@ The suite is intentionally small and covers the parts where bugs are expensive.
 
 - **Unit** (`tests/unit`) — mobile number normalization, password rules and the
   safe redirect helper, `calculateTotals`, discount code normalization and
-  calculation, order status transitions and shop search/parameter parsing. No
-  database is used.
+  calculation, order status transitions, review rating/comment validation and
+  shop search/parameter parsing. No database is used.
 - **Integration** (`tests/integration`) — real Prisma against
   `TEST_DATABASE_URL`: server-computed totals with stock decrement and rollback,
   idempotent payment callbacks with cross-user rejection, stock restoration on
-  customer and admin cancellation, and atomic discount usage limits. Each test
-  creates uniquely named fixtures and removes them afterwards.
+  customer and admin cancellation, atomic discount usage limits, and review
+  eligibility with approved-only rating aggregation. Each test creates uniquely
+  named fixtures and removes them afterwards.
 - **E2E** (`tests/e2e`) — Chromium only, run against a production build:
   a customer purchase from registration to a paid order (cart empty, stock
   reduced), access control for anonymous and customer users, and an admin
@@ -236,8 +245,6 @@ scenario signs in with the seeded account.
 - **Abandoned orders.** A `PENDING` order reserves stock until it is paid or
   cancelled. A scheduled job that expires unpaid orders and releases stock is
   planned.
-- **Reviews.** Approved reviews are displayed, but customers cannot submit new
-  reviews and admins have no moderation screen yet.
 - **Notifications.** There are no email or SMS notifications for orders.
-- **Roadmap** — real gateway, OTP verification, review submission and
-  moderation, order-expiry job, cloud image storage, and production monitoring.
+- **Roadmap** — real gateway, OTP verification, order-expiry job, cloud image
+  storage, and production monitoring.

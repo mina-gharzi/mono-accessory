@@ -249,6 +249,7 @@ model Review {
 
   @@unique([userId, productId])
   @@index([productId])
+  @@index([productId, status])
   @@index([userId])
   @@index([status])
   @@index([createdAt])
