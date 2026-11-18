@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
-import { connection } from "next/server";
 import { ArrowLeft, BadgeCheck, RotateCcw, Truck } from "lucide-react";
 import { Container } from "@/components/container";
 import { EmptyState } from "@/components/empty-state";
@@ -177,8 +176,6 @@ function CollectionTile({
 }
 
 async function CollectionsGrid() {
-  await connection();
-
   const collections = await getActiveCollections(3);
 
   if (collections.length === 0) {
@@ -205,8 +202,6 @@ async function CollectionsGrid() {
 }
 
 async function NewArrivalsGrid() {
-  await connection();
-
   const products = await getNewProducts(8);
 
   if (products.length === 0) {
@@ -226,8 +221,6 @@ async function NewArrivalsGrid() {
 }
 
 async function BestSellersRow() {
-  await connection();
-
   const products = await getBestSellers(8);
 
   if (products.length === 0) {
@@ -255,8 +248,6 @@ async function BestSellersRow() {
 }
 
 async function RecommendedGrid() {
-  await connection();
-
   const products = await getRecommendedProducts(4);
 
   if (products.length === 0) {
@@ -276,8 +267,6 @@ async function RecommendedGrid() {
 }
 
 async function OffersSection() {
-  await connection();
-
   const products = await getDiscountedProducts(4);
 
   if (products.length === 0) {

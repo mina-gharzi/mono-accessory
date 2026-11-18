@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/server/auth/session";
+import { invalidateProductCache } from "@/server/cache-tags";
 import {
   cancelPendingOrder,
   getOrderForUser,
@@ -30,6 +31,9 @@ function revalidateOrder(orderNumber: string) {
   revalidatePath("/account/orders");
   revalidatePath(`/account/orders/${orderNumber}`);
   revalidatePath(`/payment/mock/${orderNumber}`);
+
+  // Paid orders bump soldCount and cancellations restore stock.
+  invalidateProductCache();
 }
 
 export async function payMockOrder(formData: FormData): Promise<void> {

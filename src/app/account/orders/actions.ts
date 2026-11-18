@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/server/auth/session";
+import { invalidateProductCache } from "@/server/cache-tags";
 import {
   cancelPendingOrder,
   type OrderMutationResult,
@@ -32,6 +33,9 @@ export async function cancelOrder(
   if (result.ok) {
     revalidatePath("/account/orders");
     revalidatePath(`/account/orders/${parsed.data.orderNumber}`);
+
+    // Cancelling restores variant stock, so cached product cards change.
+    invalidateProductCache();
   }
 
   return result;

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { connection } from "next/server";
 import { ArrowLeft } from "lucide-react";
 import { Container } from "@/components/container";
 import { EmptyState } from "@/components/empty-state";
@@ -47,8 +46,6 @@ export default function CollectionsPage() {
 }
 
 async function CollectionsGrid() {
-  await connection();
-
   const collections = await getActiveCollectionsList();
 
   if (collections.length === 0) {

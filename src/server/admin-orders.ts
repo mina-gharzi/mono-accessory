@@ -11,7 +11,7 @@ import {
   ORDER_STATUS_VALUES,
 } from "@/lib/order-status";
 import { requireAdmin } from "./auth/session";
-import { prisma } from "./db";
+import { ORDER_TRANSACTION_OPTIONS, prisma } from "./db";
 import { normalizeSearchTerm, toEnglishDigits } from "./products";
 
 export const ADMIN_ORDERS_PAGE_SIZE = 15;
@@ -563,7 +563,8 @@ export async function changeOrderStatus(
           (item) => item.variant.product.slug
         ),
       };
-    }
+    },
+    ORDER_TRANSACTION_OPTIONS
   );
 
   if (!outcome.ok) {

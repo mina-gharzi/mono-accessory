@@ -1,0 +1,38 @@
+# Dependencies and build output (recreated inside the image)
+node_modules
+.next
+src/generated
+
+# Local configuration and secrets (the build receives explicit build args)
+.env
+.env.*
+
+# Version control and local tooling
+.git
+.gitignore
+
+# Tests and reports
+tests
+test-results
+playwright-report
+coverage
+
+# Runtime data (mounted at /data/uploads in production)
+uploads
+public/uploads
+
+# Documentation and deployment assets not needed at runtime
+docs
+deploy
+docker-compose.yml
+docker-compose.override.example.yml
+Dockerfile
+.dockerignore
+README.md
+AGENTS.md
+PROJECT.md
+
+# Logs and editor files
+*.log
+.DS_Store
+Thumbs.db

@@ -4,6 +4,7 @@ import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { HeaderSkeleton } from "@/components/layout/header-skeleton";
 import { CartSheetProvider } from "@/components/cart/cart-sheet";
+import { MotionProvider } from "@/components/motion/motion-provider";
 import { RtlProvider } from "@/components/providers/rtl-provider";
 import { WishlistSeed } from "@/components/wishlist/wishlist-seed";
 import { pinar } from "@/lib/fonts";
@@ -81,16 +82,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
         <RtlProvider>
-          <Suspense fallback={null}>
-            <WishlistSeed />
-          </Suspense>
-          <CartSheetProvider>
-            <Suspense fallback={<HeaderSkeleton />}>
-              <Header />
+          <MotionProvider>
+            <Suspense fallback={null}>
+              <WishlistSeed />
             </Suspense>
-            <main className="flex flex-1 flex-col">{children}</main>
-            <Footer />
-          </CartSheetProvider>
+            <CartSheetProvider>
+              <Suspense fallback={<HeaderSkeleton />}>
+                <Header />
+              </Suspense>
+              <main className="flex flex-1 flex-col">{children}</main>
+              <Footer />
+            </CartSheetProvider>
+          </MotionProvider>
         </RtlProvider>
       </body>
     </html>

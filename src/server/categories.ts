@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { requireAdmin } from "./auth/session";
+import { invalidateCategoryCache } from "./cache-tags";
 import { prisma } from "./db";
 import { removeStoredImage } from "./uploads";
 
@@ -161,6 +162,9 @@ function revalidateCategoryPaths() {
   revalidatePath("/");
   revalidatePath("/shop");
   revalidatePath("/admin/categories");
+
+  // Category names and shop filter counts are cached by tag.
+  invalidateCategoryCache();
 }
 
 /**

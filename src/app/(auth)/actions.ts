@@ -107,10 +107,13 @@ function getErrorState(
 
 async function getClientIp(): Promise<string> {
   const headerStore = await headers();
-  const forwarded = headerStore.get("x-forwarded-for");
 
-  if (forwarded) {
-    const first = forwarded.split(",")[0]?.trim();
+  // Behind the reverse proxy, TRUST_PROXY=true makes the first X-Forwarded-For
+  // entry the real client. Without it the header is client-controlled and must
+  // not influence the login limiter.
+  if (process.env.TRUST_PROXY === "true") {
+    const forwarded = headerStore.get("x-forwarded-for");
+    const first = forwarded?.split(",")[0]?.trim();
 
     if (first) {
       return first;

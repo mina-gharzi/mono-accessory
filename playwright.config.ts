@@ -29,6 +29,10 @@ export default defineConfig({
     env: {
       DATABASE_URL: testDatabaseUrl,
       E2E_BASE_URL: baseURL,
+      // Production startup requires an https site URL and Next.js inlines this
+      // value at build time. The tests navigate with the http baseURL, so only
+      // absolute metadata URLs see this origin.
+      NEXT_PUBLIC_SITE_URL: "https://localhost:3000",
     },
   },
 });

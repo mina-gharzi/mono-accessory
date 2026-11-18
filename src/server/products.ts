@@ -1,3 +1,4 @@
+import { cacheLife, cacheTag } from "next/cache";
 import { z } from "zod";
 import type { ProductCardProduct } from "@/components/product-card";
 import {
@@ -8,7 +9,9 @@ import {
   type SortValue,
 } from "@/lib/shop-params";
 import type { Prisma } from "../generated/prisma/client";
+import { CACHE_TAGS } from "./cache-tags";
 import { prisma } from "./db";
+import { withReadRetry } from "./db-retry";
 
 export const productCardSelect = {
   id: true,
@@ -21,7 +24,9 @@ export const productCardSelect = {
     take: 1,
     select: { url: true, alt: true },
   },
-  variants: { select: { stock: true } },
+  _count: {
+    select: { variants: { where: { stock: { gt: 0 } } } },
+  },
 } satisfies Prisma.ProductSelect;
 
 export type ProductCardRow = Prisma.ProductGetPayload<{
@@ -36,7 +41,7 @@ export function toProductCard(row: ProductCardRow): ProductCardProduct {
     price: row.price,
     compareAtPrice: row.compareAtPrice,
     image: row.images[0] ?? null,
-    inStock: row.variants.some((variant) => variant.stock > 0),
+    inStock: row._count.variants > 0,
   };
 }
 
@@ -47,12 +52,18 @@ function clampLimit(limit: number, max = 24) {
 export async function getNewProducts(
   limit: number
 ): Promise<ProductCardProduct[]> {
-  const products = await prisma.product.findMany({
-    where: { isActive: true },
-    orderBy: { createdAt: "desc" },
-    take: clampLimit(limit),
-    select: productCardSelect,
-  });
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(CACHE_TAGS.products);
+
+  const products = await withReadRetry(() =>
+    prisma.product.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: "desc" },
+      take: clampLimit(limit),
+      select: productCardSelect,
+    })
+  );
 
   return products.map(toProductCard);
 }
@@ -60,12 +71,18 @@ export async function getNewProducts(
 export async function getBestSellers(
   limit: number
 ): Promise<ProductCardProduct[]> {
-  const products = await prisma.product.findMany({
-    where: { isActive: true },
-    orderBy: { soldCount: "desc" },
-    take: clampLimit(limit),
-    select: productCardSelect,
-  });
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(CACHE_TAGS.products);
+
+  const products = await withReadRetry(() =>
+    prisma.product.findMany({
+      where: { isActive: true },
+      orderBy: { soldCount: "desc" },
+      take: clampLimit(limit),
+      select: productCardSelect,
+    })
+  );
 
   return products.map(toProductCard);
 }
@@ -73,12 +90,18 @@ export async function getBestSellers(
 export async function getRecommendedProducts(
   limit: number
 ): Promise<ProductCardProduct[]> {
-  const products = await prisma.product.findMany({
-    where: { isActive: true, isFeatured: true },
-    orderBy: { soldCount: "desc" },
-    take: clampLimit(limit),
-    select: productCardSelect,
-  });
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(CACHE_TAGS.products);
+
+  const products = await withReadRetry(() =>
+    prisma.product.findMany({
+      where: { isActive: true, isFeatured: true },
+      orderBy: { soldCount: "desc" },
+      take: clampLimit(limit),
+      select: productCardSelect,
+    })
+  );
 
   return products.map(toProductCard);
 }
@@ -86,12 +109,18 @@ export async function getRecommendedProducts(
 export async function getDiscountedProducts(
   limit: number
 ): Promise<ProductCardProduct[]> {
-  const products = await prisma.product.findMany({
-    where: { isActive: true, compareAtPrice: { not: null } },
-    orderBy: { soldCount: "desc" },
-    take: clampLimit(limit),
-    select: productCardSelect,
-  });
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(CACHE_TAGS.products);
+
+  const products = await withReadRetry(() =>
+    prisma.product.findMany({
+      where: { isActive: true, compareAtPrice: { not: null } },
+      orderBy: { soldCount: "desc" },
+      take: clampLimit(limit),
+      select: productCardSelect,
+    })
+  );
 
   return products.map(toProductCard);
 }
@@ -106,17 +135,23 @@ export type HomeCollection = {
 export async function getActiveCollections(
   limit: number
 ): Promise<HomeCollection[]> {
-  return prisma.collection.findMany({
-    where: { isActive: true },
-    orderBy: { slug: "asc" },
-    take: clampLimit(limit, 6),
-    select: {
-      name: true,
-      slug: true,
-      description: true,
-      image: true,
-    },
-  });
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(CACHE_TAGS.collections);
+
+  return withReadRetry(() =>
+    prisma.collection.findMany({
+      where: { isActive: true },
+      orderBy: { slug: "asc" },
+      take: clampLimit(limit, 6),
+      select: {
+        name: true,
+        slug: true,
+        description: true,
+        image: true,
+      },
+    })
+  );
 }
 
 export function toEnglishDigits(value: string): string {
@@ -225,16 +260,23 @@ export type ShopCategory = {
 };
 
 export async function getCategoriesWithCounts(): Promise<ShopCategory[]> {
-  const categories = await prisma.category.findMany({
-    orderBy: { sortOrder: "asc" },
-    select: {
-      name: true,
-      slug: true,
-      _count: {
-        select: { products: { where: { isActive: true } } },
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(CACHE_TAGS.categories);
+  cacheTag(CACHE_TAGS.products);
+
+  const categories = await withReadRetry(() =>
+    prisma.category.findMany({
+      orderBy: { sortOrder: "asc" },
+      select: {
+        name: true,
+        slug: true,
+        _count: {
+          select: { products: { where: { isActive: true } } },
+        },
       },
-    },
-  });
+    })
+  );
 
   return categories.map((category) => ({
     name: category.name,
@@ -249,15 +291,21 @@ export type ShopColor = {
 };
 
 export async function getAvailableColors(): Promise<ShopColor[]> {
-  const colors = await prisma.productVariant.groupBy({
-    by: ["color"],
-    where: {
-      product: { isActive: true },
-      stock: { gt: 0 },
-    },
-    _count: { _all: true },
-    orderBy: { color: "asc" },
-  });
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(CACHE_TAGS.products);
+
+  const colors = await withReadRetry(() =>
+    prisma.productVariant.groupBy({
+      by: ["color"],
+      where: {
+        product: { isActive: true },
+        stock: { gt: 0 },
+      },
+      _count: { _all: true },
+      orderBy: { color: "asc" },
+    })
+  );
 
   return colors.map((item) => ({
     color: item.color,
@@ -271,11 +319,17 @@ export type PriceRange = {
 };
 
 export async function getPriceRange(): Promise<PriceRange> {
-  const range = await prisma.product.aggregate({
-    where: { isActive: true },
-    _min: { price: true },
-    _max: { price: true },
-  });
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(CACHE_TAGS.products);
+
+  const range = await withReadRetry(() =>
+    prisma.product.aggregate({
+      where: { isActive: true },
+      _min: { price: true },
+      _max: { price: true },
+    })
+  );
 
   return {
     min: range._min.price ?? 0,
@@ -390,28 +444,40 @@ export async function listProducts(
 export async function getCollectionBySlug(
   slug: string
 ): Promise<HomeCollection | null> {
-  return prisma.collection.findFirst({
-    where: { slug, isActive: true },
-    select: {
-      name: true,
-      slug: true,
-      description: true,
-      image: true,
-    },
-  });
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(CACHE_TAGS.collections);
+
+  return withReadRetry(() =>
+    prisma.collection.findFirst({
+      where: { slug, isActive: true },
+      select: {
+        name: true,
+        slug: true,
+        description: true,
+        image: true,
+      },
+    })
+  );
 }
 
 export async function getActiveCollectionsList(): Promise<HomeCollection[]> {
-  return prisma.collection.findMany({
-    where: { isActive: true },
-    orderBy: { slug: "asc" },
-    select: {
-      name: true,
-      slug: true,
-      description: true,
-      image: true,
-    },
-  });
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(CACHE_TAGS.collections);
+
+  return withReadRetry(() =>
+    prisma.collection.findMany({
+      where: { isActive: true },
+      orderBy: { slug: "asc" },
+      select: {
+        name: true,
+        slug: true,
+        description: true,
+        image: true,
+      },
+    })
+  );
 }
 
 export type SitemapProduct = {
@@ -633,50 +699,62 @@ export async function getSimilarProducts(
   productId: string,
   limit: number
 ): Promise<ProductCardProduct[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(CACHE_TAGS.products);
+
   const parsed = productIdSchema.safeParse(productId);
 
   if (!parsed.success) return [];
 
   const take = clampLimit(limit);
-  const current = await prisma.product.findUnique({
-    where: { id: parsed.data },
-    select: {
-      categoryId: true,
-      collections: { select: { id: true } },
-    },
-  });
+  const current = await withReadRetry(() =>
+    prisma.product.findUnique({
+      where: { id: parsed.data },
+      select: {
+        categoryId: true,
+        collections: { select: { id: true } },
+      },
+    })
+  );
 
   if (!current) return [];
 
-  const products = await prisma.product.findMany({
-    where: {
-      isActive: true,
-      categoryId: current.categoryId,
-      id: { not: parsed.data },
-    },
-    orderBy: [{ soldCount: "desc" }, { createdAt: "desc" }],
-    take,
-    select: productCardSelect,
-  });
+  const products = await withReadRetry(() =>
+    prisma.product.findMany({
+      where: {
+        isActive: true,
+        categoryId: current.categoryId,
+        id: { not: parsed.data },
+      },
+      orderBy: [{ soldCount: "desc" }, { createdAt: "desc" }],
+      take,
+      select: productCardSelect,
+    })
+  );
 
   if (products.length >= take || current.collections.length === 0) {
     return products.map(toProductCard);
   }
 
-  const fallback = await prisma.product.findMany({
-    where: {
-      isActive: true,
-      id: {
-        notIn: [parsed.data, ...products.map((product) => product.id)],
+  const fallback = await withReadRetry(() =>
+    prisma.product.findMany({
+      where: {
+        isActive: true,
+        id: {
+          notIn: [parsed.data, ...products.map((product) => product.id)],
+        },
+        collections: {
+          some: {
+            id: { in: current.collections.map((collection) => collection.id) },
+          },
+        },
       },
-      collections: {
-        some: { id: { in: current.collections.map((collection) => collection.id) } },
-      },
-    },
-    orderBy: [{ soldCount: "desc" }, { createdAt: "desc" }],
-    take: take - products.length,
-    select: productCardSelect,
-  });
+      orderBy: [{ soldCount: "desc" }, { createdAt: "desc" }],
+      take: take - products.length,
+      select: productCardSelect,
+    })
+  );
 
   return [...products, ...fallback].map(toProductCard);
 }

@@ -1,9 +1,5 @@
-"use client";
-
-import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { ProductImagePlaceholder } from "@/components/product-image-placeholder";
+import { ProductCardImage } from "@/components/product-card-image";
 import { WishlistButton } from "@/components/wishlist/wishlist-button";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -28,8 +24,6 @@ type ProductCardProps = {
 };
 
 export function ProductCard({ product, className }: ProductCardProps) {
-  const [imageFailed, setImageFailed] = useState(false);
-
   const discount =
     product.compareAtPrice && product.compareAtPrice > product.price
       ? Math.round((1 - product.price / product.compareAtPrice) * 100)
@@ -50,21 +44,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
       />
 
       <div className="relative aspect-4/5 overflow-hidden rounded-xl bg-secondary/60">
-        <ProductImagePlaceholder />
-
-        {product.image && !imageFailed ? (
-          <Image
-            src={product.image.url}
-            alt={product.image.alt}
-            fill
-            sizes="(min-width: 768px) 25vw, 50vw"
-            className={cn(
-              "object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.05]",
-              !product.inStock && "opacity-60 saturate-50"
-            )}
-            onError={() => setImageFailed(true)}
-          />
-        ) : null}
+        <ProductCardImage image={product.image} inStock={product.inStock} />
 
         {discount ? (
           <span className="absolute inset-s-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[11px] font-bold text-primary-foreground">

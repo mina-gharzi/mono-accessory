@@ -78,8 +78,13 @@ tests/          unit, integration and e2e suites
   the interface and be registered there.
 - **Image storage.** `ImageStorage` (`src/server/uploads.ts`) exposes `save`
   and `remove`. The local driver writes optimized WebP files under
-  `public/uploads/<year>-<month>/`. A cloud driver can be added by implementing
-  the interface and returning it from `createImageStorage`.
+  `UPLOAD_DIR/<year>-<month>/` (default: `uploads/` in the project root) and
+  returns `/uploads/<year>-<month>/<uuid>.webp` URLs. A route handler
+  (`src/app/uploads/[...path]/route.ts`) serves those files at runtime with
+  traversal protection and immutable caching, so uploads survive a rebuild.
+  Files created by older builds under `public/uploads` remain readable. A cloud
+  driver can be added by implementing the interface and returning it from
+  `createImageStorage`.
 - **Stock and transactions.** `placeOrder` runs in a single Prisma transaction:
   it re-reads cart lines, validates variant stock, decrements stock, revalidates
   any discount code, increments its usage counter with a conditional update,
@@ -113,8 +118,9 @@ Fill in `.env` as described below.
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | Yes | Pooled PostgreSQL connection string used by the app. |
-| `DIRECT_DATABASE_URL` | Migrations | Unpooled connection string used by Prisma CLI for migrations. Falls back to `DATABASE_URL` when unset. |
+| `DATABASE_URL` | Yes | PostgreSQL connection string used by the app. Development may use a Neon pooled URL; production uses a single local URL, for example `?sslmode=disable`. |
+| `DIRECT_DATABASE_URL` | Migrations | Unpooled connection string used by Prisma CLI for migrations. Falls back to `DATABASE_URL` when unset; not needed for a local PostgreSQL. |
+| `DB_POOL_MAX` | No | Maximum number of pooled database connections. Defaults to `10`; keep it within the connection limit of your database provider. |
 | `TEST_DATABASE_URL` | Tests | Disposable database for integration and E2E tests. Must differ from `DATABASE_URL`, and its host or database name must contain `test`. |
 | `ADMIN_MOBILE` | Seed | Mobile number of the admin account created by the seed. |
 | `ADMIN_PASSWORD` | Seed | Password of the seeded admin account. |
@@ -123,6 +129,8 @@ Fill in `.env` as described below.
 | `AUTH_SECRET` | Yes | Secret used to sign session JWTs. At least 32 characters. |
 | `PAYMENT_PROVIDER` | No | Payment provider id. Only `mock` is implemented; defaults to `mock`. |
 | `IMAGE_STORAGE` | No | Image storage driver. Only `local` is implemented; defaults to `local`. |
+| `UPLOAD_DIR` | Production | Directory for runtime uploads. Defaults to `uploads/` in the project root; use an absolute path on persistent storage in production. |
+| `TRUST_PROXY` | Proxy | Set to `true` only behind a reverse proxy that sets `X-Forwarded-For`; the login limiter then uses the first forwarded entry. |
 | `E2E_BASE_URL` | No | Base URL for Playwright. Defaults to `http://localhost:3000`. |
 
 ### Database setup
@@ -169,7 +177,8 @@ Open `http://localhost:3000`.
 | --- | --- |
 | `npm run dev` | Start the development server. |
 | `npm run build` | Create a production build. |
-| `npm run start` | Start the production server. |
+| `npm run start` | Start the production server with `next start`. |
+| `npm run start:standalone` | Copy assets into `.next/standalone` and run the standalone production server. |
 | `npm run lint` | Run ESLint. |
 | `npm run typecheck` | Run TypeScript without emitting. |
 | `npm test` | Run unit and integration tests. |
@@ -179,7 +188,8 @@ Open `http://localhost:3000`.
 | `npm run test:e2e:db` | Migrate and seed the test database only. |
 | `npm run db:generate` | Regenerate the Prisma client. |
 | `npm run db:migrate` | Create and apply a migration in development. |
-| `npm run db:seed` | Seed the database. |
+| `npm run db:seed` | Seed the catalog, settings and admin account. |
+| `npm run db:seed:production` | Create only the admin account and store settings for a real deployment. |
 | `npm run db:studio` | Open Prisma Studio. |
 
 ## Tests
@@ -202,39 +212,79 @@ The suite is intentionally small and covers the parts where bugs are expensive.
   moving a paid order to processing with only the allowed next steps visible.
 
 Safety guard: the integration and E2E setup throws when `TEST_DATABASE_URL` is
-missing, when it equals `DATABASE_URL`, or when its host and database name do
-not contain `test`. Prisma is pointed at the test database only inside the test
-process.
+missing, when it targets the same database as `DATABASE_URL` or
+`DIRECT_DATABASE_URL`, or when its host and database name do not contain
+`test`.
 
 Apply migrations to the test database once before the first integration run.
-`npm run test:e2e:db` does that and also seeds the catalog used by E2E.
+`npm run test:e2e:db` does that and also seeds the catalog used by E2E. It
+builds the Prisma child environment explicitly: `DATABASE_URL` and
+`DIRECT_DATABASE_URL` are both set to the test database (the direct host is
+derived from `TEST_DATABASE_URL`) and the same guard runs on the effective URL
+before every command. No manual environment overrides are needed; the target
+host and database name are logged before migrating and seeding.
 
 ```bash
 npm test          # unit + integration
 npm run test:e2e  # Playwright; requires port 3000 to be free
 ```
 
+`npm run test:e2e` works as-is even when `.env` points `DIRECT_DATABASE_URL`
+at the development database: the harness never lets that value reach the
+migrate or seed commands.
+
 E2E requires `ADMIN_MOBILE` and `ADMIN_PASSWORD` in `.env`, because the admin
 scenario signs in with the seeded account.
 
 ## Deployment
 
-- Build with `npm run build` and serve with `npm run start`. Set every required
-  environment variable in the hosting provider.
-- Run `npx prisma migrate deploy` as part of the release step.
-- Set `NEXT_PUBLIC_SITE_URL` to the public HTTPS origin so canonical URLs,
-  Open Graph tags, the sitemap and robots point at the right host.
-- Generate a random `AUTH_SECRET` of at least 32 characters. Changing it
-  invalidates every existing session.
-- `DATABASE_URL` should be the pooled connection string and
-  `DIRECT_DATABASE_URL` the unpooled one. Sessions are signed with
-  `AUTH_SECRET`; serve the app over HTTPS so the production cookie is sent
-  securely.
-- The local image driver writes to `public/uploads`, which is ephemeral on
-  serverless hosts. Implement the `ImageStorage` interface for a cloud bucket
-  before deploying to production.
-- `PAYMENT_PROVIDER=mock` is for development only. Never enable it on a live
-  store.
+The app is designed to run as a normal Node server behind a reverse proxy, with
+PostgreSQL on the same machine. `.env.production.example` lists every variable
+with a short explanation. For a self-hosted Linux VPS, the included Docker
+Compose stack, backup/restore scripts and Nginx example are documented step by
+step in [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
+- **Build needs a reachable database.** Storefront pages use `use cache` and are
+  prerendered at build time, so run `npm run build` after PostgreSQL is up and
+  migrations are applied. Set `NEXT_PUBLIC_SITE_URL` before building: Next.js
+  inlines `NEXT_PUBLIC_*` values at build time.
+- **Release steps.** Install dependencies, run `npx prisma migrate deploy`, then
+  `npm run db:seed:production` (admin account and store settings only), then
+  `npm run build` and `npm run start:standalone`. The script copies
+  `.next/static` and `public` into `.next/standalone` and starts
+  `node .next/standalone/server.js`; set `PORT`/`HOSTNAME` as needed.
+- **Keep secrets out of the build artifact.** Next.js copies `.env` and
+  `.env.production` into `.next/standalone` during the build. `postbuild`
+  deletes those copies, and the launcher deletes any leftovers before starting.
+  The launcher then loads project env files with the same precedence as
+  Next.js (`.env.production.local`, `.env.local`, `.env.production`, `.env`;
+  the first file that defines a variable wins) without overriding variables
+  already set by systemd/a process manager. Copy `.env.production.example` to
+  `.env.production` for a self-managed server, or provide the same variables
+  directly through the process environment. Never archive or upload
+  `.next/standalone` from a machine that has production secrets in `.env`.
+- **Startup checks.** In production the server refuses to start when
+  `AUTH_SECRET` is missing, shorter than 32 characters or still a template value,
+  when `ADMIN_PASSWORD` is present but short or a placeholder,
+  when `NEXT_PUBLIC_SITE_URL` is missing or not HTTPS, or when `DATABASE_URL` is
+  missing. It logs a one-time warning when `PAYMENT_PROVIDER` is `mock`.
+- **Uploads must be persistent.** Set `UPLOAD_DIR` to an absolute path on
+  persistent storage and include it in backups. Files written under `public/`
+  at runtime are not served by the production server; the uploads route reads
+  `UPLOAD_DIR` (default `uploads/` next to the project root). Older files in
+  `public/uploads` stay readable.
+- **HTTPS is required.** Production session cookies use the `Secure` flag, so
+  serve the site over HTTPS. Set `TRUST_PROXY=true` only when the reverse proxy
+  sets `X-Forwarded-For`; the login limiter then uses its first entry.
+- **Replace the mock payment provider.** `PAYMENT_PROVIDER=mock` never charges
+  anyone and is for development only. Implement a real gateway before accepting
+  real orders.
+- **Database URL.** Production uses a single `DATABASE_URL`. For a local
+  PostgreSQL without TLS use `?sslmode=disable`; `DIRECT_DATABASE_URL` stays
+  optional and is only read by the Prisma CLI.
+- **Health endpoint.** `GET /api/health` returns `{ "status": "ok" }` with HTTP
+  200 when `SELECT 1` succeeds within 3 seconds, otherwise 503. It is dynamic,
+  uncached and excluded from robots.
 
 ## Known limitations and roadmap
 

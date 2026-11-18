@@ -6,7 +6,7 @@ import { CART_MAX_QUANTITY } from "@/lib/cart";
 import { IRAN_PROVINCES, isIranProvince } from "@/lib/iran-provinces";
 import { ORDER_STATUS_VALUES } from "@/lib/order-status";
 import { mobileSchema, toEnglishDigits } from "./auth/mobile";
-import { prisma } from "./db";
+import { ORDER_TRANSACTION_OPTIONS, prisma } from "./db";
 import {
   DISCOUNT_USAGE_LIMIT,
   findDiscountForSubtotal,
@@ -290,8 +290,10 @@ export async function placeOrder(
 
   for (let attempt = 0; attempt < ORDER_NUMBER_ATTEMPTS; attempt += 1) {
     try {
-      return await prisma.$transaction((tx) =>
-        createPendingOrder(tx, parsedUser.data, parsedShipping.data, code)
+      return await prisma.$transaction(
+        (tx) =>
+          createPendingOrder(tx, parsedUser.data, parsedShipping.data, code),
+        ORDER_TRANSACTION_OPTIONS
       );
     } catch (error) {
       if (error instanceof PlaceOrderError) {
@@ -531,7 +533,7 @@ export async function markOrderPaid(
     });
 
     return { ok: true };
-  });
+  }, ORDER_TRANSACTION_OPTIONS);
 }
 
 export async function cancelPendingOrder(
@@ -609,7 +611,7 @@ export async function cancelPendingOrder(
     }
 
     return { ok: true };
-  });
+  }, ORDER_TRANSACTION_OPTIONS);
 }
 
 export async function getOrderForUser(

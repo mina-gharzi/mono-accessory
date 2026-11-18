@@ -104,7 +104,11 @@ model Product {
   reviews       Review[]
 
   @@index([categoryId])
-  @@index([isActive, isFeatured])
+  @@index([isActive, createdAt])
+  @@index([isActive, soldCount])
+  @@index([isActive, isFeatured, soldCount])
+  @@index([isActive, categoryId, soldCount])
+  @@index([isActive, compareAtPrice, soldCount])
   @@index([createdAt])
   @@index([soldCount])
 }
@@ -196,8 +200,8 @@ model Order {
   user  User        @relation(fields: [userId], references: [id], onDelete: Restrict)
   items OrderItem[]
 
-  @@index([userId])
-  @@index([status])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
   @@index([paymentStatus])
   @@index([createdAt])
 }

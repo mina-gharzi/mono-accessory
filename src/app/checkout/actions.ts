@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { requireUser } from "@/server/auth/session";
+import { invalidateProductCache } from "@/server/cache-tags";
 import { getCart } from "@/server/cart";
 import { normalizeCode, validateDiscountForSubtotal } from "@/server/discounts";
 import {
@@ -111,6 +112,9 @@ export async function placeOrderAction(
       values,
     };
   }
+
+  // Placing an order decrements variant stock, so cached product cards change.
+  invalidateProductCache();
 
   const payment = await getPaymentProvider().createPayment({
     orderNumber: result.orderNumber,

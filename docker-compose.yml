@@ -1,0 +1,105 @@
+# Production stack for a self-hosted Linux VPS.
+#
+#   docker compose --env-file .env.production <command>
+#
+# The --env-file flag is required: it supplies POSTGRES_* and the build args
+# used by ${...} substitution. Each service also reads .env.production through
+# env_file. Only the app (127.0.0.1:3000) and PostgreSQL (127.0.0.1:5432) are
+# published, and both only on loopback; Nginx on the host is the public entry.
+#
+# See docs/DEPLOY.md for the full deployment and backup guide.
+
+name: mono-accessory
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env.production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env.production}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      # Loopback only. The app uses the compose network; this is for psql,
+      # pg_dump and the build-time database connection from the host.
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # On-demand tools image: migrations and the production seed. It is not part
+  # of the normal app stack and only runs with an explicit `docker compose run`.
+  migrate:
+    profiles: ["tools"]
+    build:
+      context: .
+      target: migrate
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-node:24-bookworm-slim}
+        NPM_REGISTRY: ${NPM_REGISTRY:-}
+    image: mono-accessory-migrate:${IMAGE_TAG:-latest}
+    env_file: .env.production
+    environment:
+      # The app and Prisma CLI must use the db service, not 127.0.0.1.
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+      DIRECT_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build:
+      context: .
+      target: runner
+      # `use cache` pages are prerendered during `next build` and query the
+      # database. Host networking lets the build use 127.0.0.1:5432 on Linux;
+      # docker-compose.override.example.yml shows the Docker Desktop variant.
+      network: host
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-node:24-bookworm-slim}
+        NPM_REGISTRY: ${NPM_REGISTRY:-}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?set NEXT_PUBLIC_SITE_URL in .env.production}
+        # deploy.sh exports BUILD_DATABASE_URL from .env.production before
+        # building. The value is only present in the builder stage.
+        DATABASE_URL: ${BUILD_DATABASE_URL:-}
+    image: mono-accessory:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+      # Compose owns these two values; the .env.production values describe a
+      # standalone host installation and are ignored here.
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+      UPLOAD_DIR: /data/uploads
+      # Nginx replaces X-Forwarded-For, so the login limiter may trust it.
+      TRUST_PROXY: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - uploads:/data/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    # Optional limits. Uncomment and adjust after measuring real usage.
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "2.0"
+    #       memory: 1g
+    #     reservations:
+    #       memory: 256m
+
+volumes:
+  db-data:
+  uploads:

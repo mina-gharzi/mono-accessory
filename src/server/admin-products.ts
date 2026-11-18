@@ -5,6 +5,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { requireAdmin } from "./auth/session";
 import { prisma } from "./db";
 import { normalizeSearchTerm, toEnglishDigits } from "./products";
+import { invalidateProductCatalogCache } from "./cache-tags";
 import { removeStoredImage } from "./uploads";
 
 export const ADMIN_PRODUCTS_PAGE_SIZE = 15;
@@ -874,6 +875,9 @@ function revalidateProductPaths({
   revalidatePath("/shop");
   revalidatePath("/collections");
   revalidatePath("/admin/products");
+
+  // Public listings (home, shop filters, similar products) are cached by tag.
+  invalidateProductCatalogCache();
 
   for (const slug of new Set(productSlugs)) {
     revalidatePath(`/product/${slug}`);

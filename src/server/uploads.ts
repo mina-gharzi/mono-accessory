@@ -2,12 +2,17 @@ import { randomUUID } from "node:crypto";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
+import {
+  getUploadDirectory,
+  resolveLegacyStoredUpload,
+  resolveStoredUpload,
+  UPLOAD_URL_PREFIX,
+  type StoredUpload,
+} from "./upload-files";
 
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const MAX_IMAGE_DIMENSION = 2000;
 const WEBP_QUALITY = 85;
-const UPLOAD_URL_PREFIX = "/uploads/";
-const UPLOADS_DIRECTORY = path.join(process.cwd(), "public", "uploads");
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
@@ -41,10 +46,10 @@ class LocalImageStorage implements ImageStorage {
     }
 
     const folder = toMonthlyFolder(new Date());
-    const directory = path.join(UPLOADS_DIRECTORY, folder);
+    const directory = path.join(getUploadDirectory(), folder);
 
-    await mkdir(directory, { recursive: true });
-    await writeFile(path.join(directory, safeName), buffer);
+    await mkdir(/*turbopackIgnore: true*/ directory, { recursive: true });
+    await writeFile(/*turbopackIgnore: true*/ path.join(directory, safeName), buffer);
 
     return `${UPLOAD_URL_PREFIX}${folder}/${safeName}`;
   }
@@ -54,19 +59,21 @@ class LocalImageStorage implements ImageStorage {
       return;
     }
 
-    const relative = url.slice(UPLOAD_URL_PREFIX.length);
-    const target = path.resolve(UPLOADS_DIRECTORY, relative);
-    const rootWithSeparator = `${UPLOADS_DIRECTORY}${path.sep}`;
+    const segments = url.slice(UPLOAD_URL_PREFIX.length).split("/");
+    const targets = [
+      resolveStoredUpload(segments),
+      resolveLegacyStoredUpload(segments),
+    ]
+      .filter((target): target is StoredUpload => target !== null)
+      .map((target) => target.filePath);
 
-    if (target !== UPLOADS_DIRECTORY && !target.startsWith(rootWithSeparator)) {
-      return;
-    }
-
-    try {
-      await unlink(target);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-        throw error;
+    for (const target of targets) {
+      try {
+        await unlink(/*turbopackIgnore: true*/ target);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+          throw error;
+        }
       }
     }
   }

@@ -1,0 +1,34 @@
+# Local simulation on Docker Desktop (Windows/macOS).
+#
+# Copy this file to docker-compose.override.yml, then export BUILD_DATABASE_URL
+# with host.docker.internal before building (the build container cannot reach
+# the host loopback address):
+#
+#   PowerShell:
+#     $env:BUILD_DATABASE_URL = "postgresql://USER:PASSWORD@host.docker.internal:5432/DATABASE?sslmode=disable"
+#     docker compose --env-file .env.production build app
+#     docker compose --env-file .env.production up -d app
+#
+#   bash:
+#     export BUILD_DATABASE_URL="postgresql://USER:PASSWORD@host.docker.internal:5432/DATABASE?sslmode=disable"
+#     docker compose --env-file .env.production build app
+#     docker compose --env-file .env.production up -d app
+#
+# The `!override` tag requires Docker Compose v2.24 or newer. Only use this
+# file for local testing: it publishes PostgreSQL on every interface so the
+# build container can reach it. Never use it on a public server.
+
+services:
+  db:
+    ports: !override
+      - "5432:5432"
+
+  app:
+    build:
+      network: default
+      args:
+        DATABASE_URL: ${BUILD_DATABASE_URL:?set BUILD_DATABASE_URL to host.docker.internal before building}
+
+  migrate:
+    build:
+      network: default
