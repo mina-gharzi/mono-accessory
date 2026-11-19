@@ -7,7 +7,12 @@ Read PROJECT.md before each task. Rules:
 - Avoid unnecessary files and abstractions. Do not add features outside the current task.
 - Respect prefers-reduced-motion. Every list/page has loading, empty and error states.
 - UI must be RTL-correct.
-- After each task run typecheck, lint and build; fix failures; report only failures and the list of files changed.
+- After a task, run only typecheck, lint and the unit tests related to the changed code. Run the
+  full build, integration tests and E2E tests only when the user explicitly asks or at the end of a
+  numbered phase. Report only failures and the list of files changed.
+- Never leave a dev server or other background process running when finished; stop anything you started.
+- If a command takes longer than 3 minutes or hits a database connection error (P1001, timeout,
+  "Connection terminated"), stop and report it. Do not retry in a loop.
 - Admin and account list pages are a synchronous page shell (heading, actions) plus an async
   child that awaits data and searchParams inside `<Suspense>` with a skeleton fallback (see
   `src/app/admin/categories/page.tsx`). Never await data or searchParams at a page's top level.

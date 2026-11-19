@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
+import { connection } from "next/server";
 import { notFound, redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
 import type { Role } from "@/generated/prisma/client";
@@ -57,6 +58,11 @@ export async function destroySession(): Promise<void> {
 }
 
 export const getSession = cache(async (): Promise<SessionUser | null> => {
+  // A session read is request-dependent: it must never run during prerendering.
+  // `cookies()` alone is not enough here because `jwtVerify` reads the current
+  // time (`new Date()`) before it can validate the token.
+  await connection();
+
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
 
