@@ -216,6 +216,53 @@ missing, when it targets the same database as `DATABASE_URL` or
 `DIRECT_DATABASE_URL`, or when its host and database name do not contain
 `test`.
 
+### Local test database (recommended)
+
+A throwaway PostgreSQL container is the fastest option:
+
+```bash
+docker run -d \
+  --name mono-test-postgres \
+  -e POSTGRES_DB=mono_test \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -p 127.0.0.1:5433:5432 \
+  -v mono-test-postgres-data:/var/lib/postgresql/data \
+  postgres:17-alpine
+```
+
+Point `TEST_DATABASE_URL` at it:
+
+```bash
+TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5433/mono_test?sslmode=disable
+```
+
+Apply the migrations once. Pass both URLs to that single command only:
+
+```bash
+DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:5433/mono_test?sslmode=disable' \
+DIRECT_DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:5433/mono_test?sslmode=disable' \
+npx prisma migrate deploy
+```
+
+`prisma.config.ts` prefers `DIRECT_DATABASE_URL` when it is set. If it stayed
+exported, later Prisma commands such as `npm run db:seed` or `db:migrate` would
+silently target the test database, so use one-command assignments instead of
+exporting them (on PowerShell, set `$env:DATABASE_URL` and
+`$env:DIRECT_DATABASE_URL` for the command and remove them afterwards).
+
+After a reboot, start the container again; the named volume keeps the migrated
+schema:
+
+```bash
+docker start mono-test-postgres
+```
+
+The safety guard still applies: the database name (or host) must contain
+`test`, and the test database must differ from the development `DATABASE_URL`
+and `DIRECT_DATABASE_URL`. A remote test database also works, but every
+migration and test run is much slower than a local container.
+
 Apply migrations to the test database once before the first integration run.
 `npm run test:e2e:db` does that and also seeds the catalog used by E2E. It
 builds the Prisma child environment explicitly: `DATABASE_URL` and

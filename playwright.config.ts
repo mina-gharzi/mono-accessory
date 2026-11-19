@@ -32,7 +32,10 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "npm run test:e2e:db && npm run build && npm run start",
+    // The project builds with `output: "standalone"`, so `next start` warns and
+    // does not serve the build correctly; use the standalone launcher instead.
+    command:
+      "npm run test:e2e:db && npm run build && npm run start:standalone",
     url: baseURL,
     reuseExistingServer: false,
     timeout: 600_000,
