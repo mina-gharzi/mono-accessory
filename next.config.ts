@@ -53,8 +53,21 @@ const nextConfig: NextConfig = {
   },
   // The image optimizer loads sharp at runtime. Its native binary and libvips
   // DLLs live in @img/sharp-* and are not discovered by static tracing.
+  //
+  // Turbopack stores external packages under hashed aliases in
+  // .next/node_modules (for example @prisma/client-<hash>). The generated
+  // server chunks require those aliases, but tracing does not follow the
+  // static external require, so the production server fails with
+  // "Cannot find module @prisma/client-<hash>/runtime/client". Include the real
+  // packages here; scripts/link-standalone-externals.mjs mirrors the aliases
+  // into the standalone output after the build.
   outputFileTracingIncludes: {
-    "/*": ["./node_modules/sharp/**/*", "./node_modules/@img/**/*"],
+    "/*": [
+      "./node_modules/sharp/**/*",
+      "./node_modules/@img/**/*",
+      "./node_modules/@prisma/client/**/*",
+      "./node_modules/@prisma/client-runtime-utils/**/*",
+    ],
   },
   async redirects() {
     return [

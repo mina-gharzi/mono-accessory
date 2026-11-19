@@ -39,7 +39,10 @@ step "Dumping PostgreSQL to $DB_FILE"
 [ -s "$DB_FILE" ] || fail "The database dump is empty."
 
 step "Archiving uploads to $UPLOADS_FILE"
-"${COMPOSE[@]}" exec -T app tar -czf - -C /data/uploads . > "$UPLOADS_FILE"
+# Keep /data/uploads inside the container command: Git Bash on Windows rewrites
+# bare POSIX paths in host arguments to C:/Program Files/Git/... before Docker
+# sees them.
+"${COMPOSE[@]}" exec -T app sh -c 'tar -czf - -C /data/uploads .' > "$UPLOADS_FILE"
 [ -s "$UPLOADS_FILE" ] || fail "The uploads archive is empty."
 
 step "Removing backups older than $RETENTION_DAYS days"

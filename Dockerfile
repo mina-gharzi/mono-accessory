@@ -34,13 +34,19 @@ RUN npm ci --ignore-scripts
 #   * NEXT_PUBLIC_* values are inlined by Next.js.
 # Both are ARG/ENV of this stage only and never reach the runner image. Build
 # with host networking on Linux so DATABASE_URL can use 127.0.0.1:5432.
+#
+# AUTH_SECRET is a fixed build placeholder. Page-data collection imports the
+# session module, which validates the secret at load time, but no session is
+# created during the build. The runner stage does not inherit this value: the
+# real secret is supplied at runtime by the environment.
 # ---------------------------------------------------------------------------
 FROM base AS builder
 ARG NEXT_PUBLIC_SITE_URL
 ARG DATABASE_URL
 ENV NODE_ENV=production \
     NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
-    DATABASE_URL=${DATABASE_URL}
+    DATABASE_URL=${DATABASE_URL} \
+    AUTH_SECRET=build-only-placeholder-not-used-at-runtime
 
 COPY --from=deps /app/node_modules ./node_modules
 # Only files needed for the build are copied. Tests and local env files are

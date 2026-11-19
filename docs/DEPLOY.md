@@ -128,7 +128,10 @@ The script performs five steps:
    so the build queries PostgreSQL. On Linux the build uses host networking
    (set in `docker-compose.yml`) and the `DATABASE_URL` from `.env.production`
    points at `127.0.0.1:5432`, where Compose publishes the database. The
-   `DATABASE_URL` build argument exists only in the builder stage.
+   `DATABASE_URL` build argument exists only in the builder stage. The builder
+   also sets a fixed dummy `AUTH_SECRET`, because page-data collection imports
+   the session module; the runner stage does not inherit it and the real secret
+   comes from `.env.production` at runtime.
 4. Start the app container.
 5. Poll `http://127.0.0.1:3000/api/health` until it returns
    `{"status":"ok"}`, or print the app logs and fail.
@@ -313,6 +316,11 @@ Remove-Item docker-compose.override.yml, .env.production
 The override publishes PostgreSQL on every interface so the build container can
 reach it. That is acceptable on a local machine only; never use it on a public
 server.
+
+`deploy/backup.sh` and `deploy/restore.sh` also run from Git Bash. Point
+`BACKUP_DIR` at a writable directory inside the project; the Linux default
+`/var/backups/mono-accessory` does not exist on Windows. Both scripts call the
+container-side paths through `sh -c` so Git Bash does not rewrite them.
 
 ## 12. Before accepting real orders
 

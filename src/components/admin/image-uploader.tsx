@@ -14,7 +14,13 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 const FILE_TOO_LARGE = "حجم تصویر نباید بیشتر از ۵ مگابایت باشد.";
+const INVALID_IMAGE_TYPE = "فقط تصویر JPEG، PNG یا WebP مجاز است.";
 const UPLOAD_FAILED = "بارگذاری تصویر ناموفق بود. لطفاً دوباره تلاش کنید.";
 
 export type UploadedImage = {
@@ -109,17 +115,12 @@ export function ImageUploader({
     );
   }
 
-  async function uploadFiles(fileList: FileList | File[]) {
-    if (pending) {
+  async function uploadFiles(files: File[]) {
+    if (pending || files.length === 0) {
       return;
     }
 
-    const files = Array.from(fileList);
     const available = multiple ? Math.max(0, limit - items.length) : 1;
-
-    if (files.length === 0) {
-      return;
-    }
 
     if (available === 0) {
       setLocalError(
@@ -130,10 +131,21 @@ export function ImageUploader({
       return;
     }
 
-    const selected = files.slice(0, available);
-    const tooLarge = selected.find((file) => file.size > MAX_UPLOAD_BYTES);
+    if (files.length > available) {
+      setLocalError(
+        multiple
+          ? `حداکثر ${limit} تصویر می‌توانید بارگذاری کنید.`
+          : "برای جایگزینی، ابتدا تصویر فعلی را حذف کنید."
+      );
+      return;
+    }
 
-    if (tooLarge) {
+    if (files.some((file) => !ALLOWED_IMAGE_TYPES.has(file.type))) {
+      setLocalError(INVALID_IMAGE_TYPE);
+      return;
+    }
+
+    if (files.some((file) => file.size > MAX_UPLOAD_BYTES)) {
       setLocalError(FILE_TOO_LARGE);
       return;
     }
@@ -144,7 +156,7 @@ export function ImageUploader({
     const uploaded: ImageItem[] = [];
 
     try {
-      for (const file of selected) {
+      for (const file of files) {
         const data = new FormData();
         data.append("file", file);
 
@@ -192,7 +204,9 @@ export function ImageUploader({
         onDrop={(event) => {
           event.preventDefault();
           setDragging(false);
-          void uploadFiles(event.dataTransfer.files);
+          // FileList is live and owned by the event; copy it synchronously.
+          const files = Array.from(event.dataTransfer.files);
+          void uploadFiles(files);
         }}
         className={cn(
           "rounded-lg border border-dashed border-border bg-card/60 transition-colors motion-reduce:transition-none",
@@ -228,12 +242,11 @@ export function ImageUploader({
             aria-describedby={hintId}
             className="sr-only"
             onChange={(event) => {
-              const files = event.target.files;
+              // FileList is live: clearing the input empties it. Copy the files
+              // first, then reset so selecting the same file again fires change.
+              const files = Array.from(event.target.files ?? []);
               event.target.value = "";
-
-              if (files) {
-                void uploadFiles(files);
-              }
+              void uploadFiles(files);
             }}
           />
         </label>
