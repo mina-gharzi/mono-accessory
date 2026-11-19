@@ -23,7 +23,7 @@ export async function registerCustomer(
   await page.getByLabel("تکرار رمز عبور").fill(password);
   await page.getByRole("button", { name: "ایجاد حساب" }).click();
 
-  await page.waitForURL(/\/account/);
+  await page.waitForURL(/\/shop/);
 
   return { mobile, password };
 }
@@ -38,7 +38,7 @@ export async function login(
   await page.getByLabel("رمز عبور", { exact: true }).fill(password);
   await page.getByRole("button", { name: "ورود", exact: true }).click();
 
-  await page.waitForURL(/\/account/);
+  await page.waitForURL(/\/shop/);
 }
 
 export async function addProductToCart(

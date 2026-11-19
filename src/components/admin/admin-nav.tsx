@@ -31,15 +31,14 @@ const adminLinks: {
   label: string;
   icon: LucideIcon;
   exact?: boolean;
-  later?: boolean;
 }[] = [
   { href: "/admin", label: "نمای کلی", icon: LayoutDashboard, exact: true },
   { href: "/admin/products", label: "محصولات", icon: Package },
   { href: "/admin/categories", label: "دسته‌بندی‌ها", icon: Tags },
   { href: "/admin/orders", label: "سفارش‌ها", icon: ShoppingCart },
   { href: "/admin/customers", label: "مشتریان", icon: Users },
-  { href: "/admin/discounts", label: "تخفیف‌ها", icon: Percent, later: true },
-  { href: "/admin/reviews", label: "دیدگاه‌ها", icon: MessageSquare, later: true },
+  { href: "/admin/discounts", label: "تخفیف‌ها", icon: Percent },
+  { href: "/admin/reviews", label: "دیدگاه‌ها", icon: MessageSquare },
 ];
 
 const focusRing =
@@ -71,18 +70,6 @@ function AdminNavItem({
       >
         <Icon className="size-4 shrink-0" aria-hidden="true" />
         <span>{link.label}</span>
-        {link.later ? (
-          <span
-            className={cn(
-              "ms-auto rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-              active
-                ? "bg-primary-foreground/15 text-primary-foreground"
-                : "bg-muted text-muted-foreground"
-            )}
-          >
-            به‌زودی
-          </span>
-        ) : null}
       </Link>
     </li>
   );

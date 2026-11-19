@@ -40,22 +40,22 @@ describe("safeNextPath", () => {
   });
 
   it("rejects absolute and protocol-relative URLs", () => {
-    expect(safeNextPath("//evil.com")).toBe("/account");
-    expect(safeNextPath("https://evil.com")).toBe("/account");
-    expect(safeNextPath("http://evil.com/shop")).toBe("/account");
-    expect(safeNextPath("/\\evil.com")).toBe("/account");
+    expect(safeNextPath("//evil.com")).toBe("/shop");
+    expect(safeNextPath("https://evil.com")).toBe("/shop");
+    expect(safeNextPath("http://evil.com/shop")).toBe("/shop");
+    expect(safeNextPath("/\\evil.com")).toBe("/shop");
   });
 
   it("rejects empty values", () => {
-    expect(safeNextPath("")).toBe("/account");
-    expect(safeNextPath(null)).toBe("/account");
-    expect(safeNextPath(undefined)).toBe("/account");
+    expect(safeNextPath("")).toBe("/shop");
+    expect(safeNextPath(null)).toBe("/shop");
+    expect(safeNextPath(undefined)).toBe("/shop");
   });
 
   it("rejects the auth pages", () => {
-    expect(safeNextPath("/login")).toBe("/account");
-    expect(safeNextPath("/login?next=/shop")).toBe("/account");
-    expect(safeNextPath("/register")).toBe("/account");
+    expect(safeNextPath("/login")).toBe("/shop");
+    expect(safeNextPath("/login?next=/shop")).toBe("/shop");
+    expect(safeNextPath("/register")).toBe("/shop");
   });
 
   it("uses a custom fallback", () => {

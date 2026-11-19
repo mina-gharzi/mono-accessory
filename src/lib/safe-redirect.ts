@@ -7,7 +7,7 @@ const BASE_URL = "http://internal.local";
  */
 export function safeNextPath(
   value: string | null | undefined,
-  fallback = "/account"
+  fallback = "/shop"
 ): string {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
     return fallback;
