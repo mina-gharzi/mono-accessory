@@ -20,6 +20,7 @@ import {
   parseAdminCustomersQuery,
   type AdminCustomerListItem,
   type AdminCustomersQuery,
+  type AdminCustomersRoleFilter,
 } from "@/server/admin-customers";
 
 export const metadata: Metadata = {
@@ -34,6 +35,18 @@ const roleLabels: Record<Role, string> = {
   ADMIN: "مدیر",
   CUSTOMER: "مشتری",
 };
+
+const roleFilterLabels: Record<AdminCustomersRoleFilter, string> = {
+  customers: "مشتریان",
+  admins: "مدیران",
+  all: "همه",
+};
+
+function roleNoun(role: AdminCustomersRoleFilter): string {
+  if (role === "admins") return "مدیر";
+  if (role === "all") return "کاربر";
+  return "مشتری";
+}
 
 const columns: DataTableColumn[] = [
   { key: "name", label: "نام" },
@@ -93,6 +106,8 @@ async function CustomersContent({
     );
   }
 
+  const noun = roleNoun(query.role);
+
   return (
     <div className="flex flex-col gap-5">
       <CustomersFilters query={query} />
@@ -100,8 +115,8 @@ async function CustomersContent({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground" aria-live="polite">
           {result.total > 0
-            ? `${formatNumber(result.total)} مشتری`
-            : "مشتری پیدا نشد"}
+            ? `${formatNumber(result.total)} ${noun}`
+            : `${noun} پیدا نشد`}
         </p>
         {query.q ? (
           <Button asChild variant="ghost" size="sm">
@@ -117,7 +132,7 @@ async function CustomersContent({
         empty={
           query.q ? (
             <EmptyState
-              title="مشتری با این مشخصات پیدا نشد"
+              title={`${noun} با این مشخصات پیدا نشد`}
               description="عبارت جستجوی نام یا موبایل را تغییر دهید."
               action={
                 <Button asChild>
@@ -127,7 +142,7 @@ async function CustomersContent({
             />
           ) : (
             <EmptyState
-              title="هنوز مشتری ثبت‌نام نکرده است"
+              title={`هنوز ${noun} ثبت‌نام نکرده است`}
               description="کاربران پس از ثبت‌نام در این بخش نمایش داده می‌شوند."
             />
           )
@@ -149,7 +164,7 @@ function CustomersFilters({ query }: { query: AdminCustomersQuery }) {
       action="/admin/customers"
       method="get"
       role="search"
-      className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+      className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_12rem_auto] lg:items-end"
     >
       <div className="flex flex-col gap-2">
         <label
@@ -169,14 +184,38 @@ function CustomersFilters({ query }: { query: AdminCustomersQuery }) {
             type="search"
             name="q"
             defaultValue={query.q ?? ""}
-            placeholder="نام یا موبایل مشتری..."
+            placeholder="نام یا موبایل..."
             className="ps-9"
           />
         </div>
       </div>
 
+      <div className="flex flex-col gap-2">
+        <label
+          htmlFor="customers-role"
+          className="text-sm font-medium text-dark"
+        >
+          نقش
+        </label>
+        <select
+          id="customers-role"
+          key={query.role}
+          name="role"
+          defaultValue={query.role}
+          className="h-11 w-full rounded-md border border-input bg-card px-3.5 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+        >
+          {(
+            Object.keys(roleFilterLabels) as AdminCustomersRoleFilter[]
+          ).map((role) => (
+            <option key={role} value={role}>
+              {roleFilterLabels[role]}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <Button type="submit" className="sm:mb-0">
-        جستجو
+        اعمال فیلتر
       </Button>
     </form>
   );

@@ -41,14 +41,22 @@ const optionalPage = z
   )
   .catch(undefined);
 
+const roleFilterSchema = z
+  .enum(["customers", "admins", "all"])
+  .catch("customers");
+
 const adminCustomersQuerySchema = z.object({
   q: optionalText(80),
   page: optionalPage,
+  role: roleFilterSchema,
 });
+
+export type AdminCustomersRoleFilter = "customers" | "admins" | "all";
 
 export type AdminCustomersQuery = {
   q: string | null;
   page: number;
+  role: AdminCustomersRoleFilter;
 };
 
 export type AdminCustomersSearchParams = Record<
@@ -60,11 +68,12 @@ export function parseAdminCustomersQuery(
   raw: AdminCustomersSearchParams
 ): AdminCustomersQuery {
   const parsed = adminCustomersQuerySchema.safeParse(raw);
-  const data = parsed.success ? parsed.data : {};
+  const data = parsed.success ? parsed.data : null;
 
   return {
-    q: data.q ? normalizeSearchTerm(data.q) || null : null,
-    page: data.page ?? 1,
+    q: data?.q ? normalizeSearchTerm(data.q) || null : null,
+    page: data?.page ?? 1,
+    role: data?.role ?? "customers",
   };
 }
 
@@ -81,6 +90,7 @@ export function buildAdminCustomersHref(
   const params = new URLSearchParams();
 
   if (next.q) params.set("q", next.q);
+  if (next.role !== "customers") params.set("role", next.role);
   if (next.page > 1) params.set("page", String(next.page));
 
   const search = params.toString();
@@ -154,7 +164,10 @@ export async function listCustomers(
 ): Promise<AdminCustomersResult> {
   await requireAdmin();
 
-  const where: Prisma.UserWhereInput = {};
+  const where: Prisma.UserWhereInput =
+    query.role === "all"
+      ? {}
+      : { role: query.role === "admins" ? "ADMIN" : "CUSTOMER" };
 
   if (query.q) {
     where.OR = [
