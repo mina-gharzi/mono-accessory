@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "postbuild": "node scripts/clean-standalone-env.mjs && node scripts/link-standalone-externals.mjs",
     "start": "next start",
     "start:standalone": "node scripts/start-standalone.mjs",

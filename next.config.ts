@@ -38,7 +38,8 @@ const nextConfig: NextConfig = {
   // Runtime uploads are read from UPLOAD_DIR, not from the bundle. That dynamic
   // filesystem access otherwise makes the tracer include the whole project in
   // .next/standalone (source files, tests and the local .env). Keep the
-  // standalone output limited to compiled code and dependencies.
+  // standalone output limited to compiled code and dependencies; the generated
+  // Prisma client is re-added explicitly in outputFileTracingIncludes below.
   outputFileTracingExcludes: {
     "/*": [
       "./.env",
@@ -67,6 +68,12 @@ const nextConfig: NextConfig = {
       "./node_modules/@img/**/*",
       "./node_modules/@prisma/client/**/*",
       "./node_modules/@prisma/client-runtime-utils/**/*",
+      // The generator writes to src/generated/prisma, which the excludes above
+      // drop from the trace even though the server chunk imports it.
+      "./src/generated/prisma/**/*",
+      // Serverless builds do not run the standalone alias-link postbuild step,
+      // so trace Turbopack's hashed @prisma/client-* aliases in .next directly.
+      "./.next/node_modules/@prisma/client-*/**/*",
     ],
   },
   async redirects() {
